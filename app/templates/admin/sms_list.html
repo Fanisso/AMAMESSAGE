@@ -59,20 +59,24 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label for="filter_phone" class="form-label">Telefone</label>
-                        <input type="text" class="form-control" id="filter_phone" placeholder="Número" onkeyup="debounceFilter(applySMSFilters, 500)">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="filter_message" class="form-label">Texto da Mensagem</label>
-                        <input type="text" class="form-control" id="filter_message" placeholder="Buscar no conteúdo..." onkeyup="debounceFilter(applySMSFilters, 500)">
+                        <label for="filter_sender" class="form-label">📤 Remetente</label>
+                        <input type="text" class="form-control" id="filter_sender" placeholder="Número que enviou" onkeyup="debounceFilter(applySMSFilters, 500)">
                     </div>
                     <div class="col-md-2">
+                        <label for="filter_recipient" class="form-label">📥 Destinatário</label>
+                        <input type="text" class="form-control" id="filter_recipient" placeholder="Número que recebeu" onkeyup="debounceFilter(applySMSFilters, 500)">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_message" class="form-label">💬 Mensagem</label>
+                        <input type="text" class="form-control" id="filter_message" placeholder="Buscar texto..." onkeyup="debounceFilter(applySMSFilters, 500)">
+                    </div>
+                    <div class="col-md-1">
                         <label for="filter_limit" class="form-label">Mostrar</label>
                         <select class="form-select" id="filter_limit" onchange="applySMSFilters()">
-                            <option value="20">20 registros</option>
-                            <option value="50" selected>50 registros</option>
-                            <option value="100">100 registros</option>
-                            <option value="200">200 registros</option>
+                            <option value="20">20</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
                         </select>
                     </div>
                     <div class="col-md-1">
@@ -331,14 +335,16 @@ async function loadSMSList() {
     try {
         const direction = document.getElementById('filter_direction').value;
         const status = document.getElementById('filter_status').value;
-        const phone = document.getElementById('filter_phone').value;
+        const sender = document.getElementById('filter_sender').value;
+        const recipient = document.getElementById('filter_recipient').value;
         const message = document.getElementById('filter_message').value;
         const limit = document.getElementById('filter_limit').value;
         
         let url = '/api/sms/list?limit=' + limit;
         if (direction) url += '&direction=' + direction;
         if (status) url += '&status=' + status;
-        if (phone) url += '&phone=' + encodeURIComponent(phone);
+        if (sender) url += '&sender=' + encodeURIComponent(sender);
+        if (recipient) url += '&recipient=' + encodeURIComponent(recipient);
         if (message) url += '&message=' + encodeURIComponent(message);
         
         // Mostrar indicador de carregamento
@@ -522,7 +528,8 @@ function updateActiveFiltersIndicator() {
     
     if (document.getElementById('filter_direction').value) activeFilters.push('Direção');
     if (document.getElementById('filter_status').value) activeFilters.push('Status');
-    if (document.getElementById('filter_phone').value) activeFilters.push('Telefone');
+    if (document.getElementById('filter_sender').value) activeFilters.push('Remetente');
+    if (document.getElementById('filter_recipient').value) activeFilters.push('Destinatário');
     if (document.getElementById('filter_message').value) activeFilters.push('Mensagem');
     
     const indicator = document.getElementById('active-filters-indicator');
@@ -542,7 +549,8 @@ function updateActiveFiltersIndicator() {
 function clearSMSFilters() {
     document.getElementById('filter_direction').value = '';
     document.getElementById('filter_status').value = '';
-    document.getElementById('filter_phone').value = '';
+    document.getElementById('filter_sender').value = '';
+    document.getElementById('filter_recipient').value = '';
     document.getElementById('filter_message').value = '';
     document.getElementById('filter_limit').value = '50';
     loadSMSList();
@@ -701,7 +709,8 @@ function exportSMSToCSV() {
     const activeFilters = [];
     if (document.getElementById('filter_direction').value) activeFilters.push('dir');
     if (document.getElementById('filter_status').value) activeFilters.push('status');
-    if (document.getElementById('filter_phone').value) activeFilters.push('tel');
+    if (document.getElementById('filter_sender').value) activeFilters.push('remetente');
+    if (document.getElementById('filter_recipient').value) activeFilters.push('destinatario');
     if (document.getElementById('filter_message').value) activeFilters.push('msg');
     
     const filterSuffix = activeFilters.length > 0 ? '_filtrado' : '';

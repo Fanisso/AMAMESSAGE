@@ -105,6 +105,10 @@ app.include_router(contacts.router, prefix="/api/contacts", tags=["Contactos"])
 # Importar e incluir API de sessão USSD contínua
 app.include_router(ussd_session.router, tags=["USSD Sessão"])
 
+# Importar e incluir API de regras de reencaminhamento
+from app.api import forwarding
+app.include_router(forwarding.router, prefix="/api", tags=["Reencaminhamento"])
+
 @app.on_event("startup")
 async def startup_event():
     """Eventos de inicialização"""

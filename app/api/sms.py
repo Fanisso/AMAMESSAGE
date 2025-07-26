@@ -55,9 +55,31 @@ async def send_sms(
         db.commit()
         db.refresh(sms)
         
-        # Enviar SMS em background
+        # Processar regras de reencaminhamento para SMS de saída
+        from app.services.forwarding_service import ForwardingRuleService
+        forwarding_service = ForwardingRuleService(db)
+        forwarding_result = forwarding_service.process_sms(sms)
+        
+        # Se foi bloqueado ou deletado, não enviar
+        if forwarding_result.get('blocked') or forwarding_result.get('deleted'):
+            if forwarding_result.get('deleted'):
+                db.delete(sms)
+                db.commit()
+                logger.info(f"SMS para {sms_data.phone_to} foi cancelado e deletado por regra")
+            else:
+                sms.status = SMSStatus.FAILED
+                sms.error_message = "Bloqueado por regra de filtragem"
+                db.commit()
+                logger.info(f"SMS para {sms_data.phone_to} foi bloqueado por regra")
+            
+            return SMSResponseSchema.from_orm(sms)
+        
+        # Enviar SMS em background se não foi bloqueado
         service = get_sms_service()
         background_tasks.add_task(service.send_sms, sms.id, db)
+        
+        if forwarding_result.get('forwarded'):
+            logger.info(f"SMS para {sms_data.phone_to} foi reencaminhado para {len(forwarding_result['forwarded'])} destinatário(s)")
         
         return SMSResponseSchema.from_orm(sms)
         
@@ -202,11 +224,28 @@ async def receive_sms_webhook(
         db.commit()
         db.refresh(sms)
         
-        # Processar comandos automáticos em background
-        service = get_command_service()
-        background_tasks.add_task(service.process_incoming_sms, sms.id, db)
+        # Processar regras de reencaminhamento e filtragem
+        from app.services.forwarding_service import ForwardingRuleService
+        forwarding_service = ForwardingRuleService(db)
+        forwarding_result = forwarding_service.process_sms(sms)
+        
+        # Se a mensagem foi bloqueada ou deletada, não processar comandos
+        if not forwarding_result.get('blocked') and not forwarding_result.get('deleted'):
+            # Processar comandos automáticos em background
+            service = get_command_service()
+            background_tasks.add_task(service.process_incoming_sms, sms.id, db)
+        else:
+            # Se foi bloqueada ou deletada, remover do banco de dados
+            if forwarding_result.get('deleted'):
+                db.delete(sms)
+                db.commit()
+                logger.info(f"SMS de {webhook_data.From} foi deletado por regra de filtragem")
+            else:
+                logger.info(f"SMS de {webhook_data.From} foi bloqueado por regra de filtragem")
         
         logger.info(f"SMS recebido de {webhook_data.From}: {webhook_data.Body[:50]}...")
+        if forwarding_result.get('forwarded'):
+            logger.info(f"SMS reencaminhado para {len(forwarding_result['forwarded'])} destinatário(s)")
         
         return MessageResponse(
             message="SMS recebido e processado com sucesso",
@@ -265,7 +304,8 @@ async def get_sms_list(
     offset: int = 0,
     direction: Optional[str] = None,
     status: Optional[str] = None,
-    phone: Optional[str] = None,
+    sender: Optional[str] = None,
+    recipient: Optional[str] = None,
     message: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
@@ -292,11 +332,11 @@ async def get_sms_list(
             elif status == "received":
                 query = query.filter(SMS.status == SMSStatus.RECEIVED)
         
-        if phone:
-            query = query.filter(
-                (SMS.phone_from.contains(phone)) | 
-                (SMS.phone_to.contains(phone))
-            )
+        if sender:
+            query = query.filter(SMS.phone_from.contains(sender))
+            
+        if recipient:
+            query = query.filter(SMS.phone_to.contains(recipient))
         
         if message:
             query = query.filter(SMS.message.contains(message))

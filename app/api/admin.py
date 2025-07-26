@@ -50,6 +50,21 @@ async def admin_commands(request: Request, db: Session = Depends(get_db)):
         "commands": commands
     })
 
+@router.get("/forwarding")
+async def admin_forwarding_rules(request: Request, db: Session = Depends(get_db)):
+    """Página de gerenciamento de regras de reencaminhamento"""
+    from app.db.models import ForwardingRule
+    
+    # Estatísticas básicas
+    total_rules = db.query(ForwardingRule).count()
+    active_rules = db.query(ForwardingRule).filter(ForwardingRule.is_active == True).count()
+    
+    return templates.TemplateResponse("admin/forwarding_rules.html", {
+        "request": request,
+        "total_rules": total_rules,
+        "active_rules": active_rules
+    })
+
 @router.get("/contacts")
 async def admin_contacts(request: Request, db: Session = Depends(get_db)):
     """Página de gestão de contactos"""

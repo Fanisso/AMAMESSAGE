@@ -243,6 +243,7 @@ class ContactGroup(Base):
     
     # Relacionamentos
     members = relationship("ContactGroupMember", back_populates="group")
+    forwarding_rules = relationship("ForwardingRule", back_populates="forward_to_group")
     
     def __repr__(self):
         return f"<ContactGroup(id={self.id}, name='{self.name}', active={self.is_active})>"
@@ -272,3 +273,91 @@ class ContactGroupMember(Base):
     
     def __repr__(self):
         return f"<ContactGroupMember(contact_id={self.contact_id}, group_id={self.group_id})>"
+
+
+class ForwardingRuleType(enum.Enum):
+    """Tipos de regras de reencaminhamento"""
+    SENDER_BASED = "sender_based"           # Baseado no remetente
+    KEYWORD_BASED = "keyword_based"         # Baseado em palavras-chave
+    RECIPIENT_BASED = "recipient_based"     # Baseado no destinatário
+    BLOCK_SENDER = "block_sender"           # Bloquear remetente
+    BLOCK_KEYWORD = "block_keyword"         # Bloquear palavras-chave
+
+
+class ForwardingRuleAction(enum.Enum):
+    """Ações das regras"""
+    FORWARD = "forward"                     # Reencaminhar
+    BLOCK = "block"                         # Bloquear/eliminar
+    DELETE = "delete"                       # Deletar automaticamente
+
+
+class ForwardingRule(Base):
+    """Regras de reencaminhamento e filtragem de SMS"""
+    __tablename__ = "forwarding_rules"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Informações básicas da regra
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, index=True)
+    
+    # Tipo e ação da regra
+    rule_type = Column(Enum(ForwardingRuleType), nullable=False, index=True)
+    action = Column(Enum(ForwardingRuleAction), nullable=False)
+    
+    # Critérios de correspondência
+    sender_pattern = Column(String(20), nullable=True, index=True)  # Para regras baseadas em remetente
+    recipient_pattern = Column(String(20), nullable=True, index=True)  # Para regras baseadas em destinatário
+    keyword_pattern = Column(Text, nullable=True)  # Palavras-chave ou frases (separadas por vírgula)
+    
+    # Configurações de reencaminhamento
+    forward_to_numbers = Column(Text, nullable=True)  # Números para reencaminhar (JSON array)
+    forward_to_group_id = Column(Integer, ForeignKey("contact_groups.id"), nullable=True)  # Grupo de contatos
+    
+    # Configurações adicionais
+    case_sensitive = Column(Boolean, default=False)  # Para busca de palavras-chave
+    whole_word_only = Column(Boolean, default=False)  # Apenas palavras completas
+    priority = Column(Integer, default=0)  # Prioridade da regra (maior = executada primeiro)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Estatísticas
+    match_count = Column(Integer, default=0)  # Quantas vezes a regra foi aplicada
+    last_match_at = Column(DateTime(timezone=True), nullable=True)  # Última aplicação
+    
+    # Relacionamentos
+    forward_to_group = relationship("ContactGroup", back_populates="forwarding_rules")
+    rule_logs = relationship("ForwardingRuleLog", back_populates="rule")
+    
+    def __repr__(self):
+        return f"<ForwardingRule(id={self.id}, name='{self.name}', type={self.rule_type.value})>"
+
+
+class ForwardingRuleLog(Base):
+    """Log de aplicação das regras de reencaminhamento"""
+    __tablename__ = "forwarding_rule_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Relacionamentos
+    rule_id = Column(Integer, ForeignKey("forwarding_rules.id"), nullable=False, index=True)
+    original_sms_id = Column(Integer, ForeignKey("sms.id"), nullable=False, index=True)
+    forwarded_sms_id = Column(Integer, ForeignKey("sms.id"), nullable=True, index=True)  # SMS reencaminhado (se aplicável)
+    
+    # Informações da aplicação
+    action_taken = Column(Enum(ForwardingRuleAction), nullable=False)
+    matched_criteria = Column(Text, nullable=True)  # O que foi correspondido
+    
+    # Timestamps
+    applied_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relacionamentos
+    rule = relationship("ForwardingRule", back_populates="rule_logs")
+    original_sms = relationship("SMS", foreign_keys=[original_sms_id])
+    forwarded_sms = relationship("SMS", foreign_keys=[forwarded_sms_id])
+    
+    def __repr__(self):
+        return f"<ForwardingRuleLog(id={self.id}, rule_id={self.rule_id}, action={self.action_taken.value})>"
