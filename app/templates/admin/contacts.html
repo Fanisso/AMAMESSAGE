@@ -1,0 +1,1009 @@
+{% extends "base.html" %}
+
+{% block title %}Contactos - AMA MESSAGE{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-address-book me-2"></i>
+                Gestão de Contactos
+            </h1>
+            <div class="btn-group">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#contactModal">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Novo Contacto
+                </button>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#groupModal">
+                    <i class="fas fa-users me-2"></i>
+                    Novo Grupo
+                </button>
+                <button class="btn btn-info" onclick="refreshData()">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    Atualizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Filtros
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="search_contacts" class="form-label">Pesquisar</label>
+                        <input type="text" class="form-control" id="search_contacts" 
+                               placeholder="Nome ou número" onkeyup="filterContacts()">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter_favorites" class="form-label">Tipo</label>
+                        <select class="form-select" id="filter_favorites" onchange="filterContacts()">
+                            <option value="">Todos</option>
+                            <option value="favorites">⭐ Favoritos</option>
+                            <option value="active">✅ Ativos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter_group" class="form-label">Grupo</label>
+                        <select class="form-select" id="filter_group" onchange="filterContacts()">
+                            <option value="">Todos os grupos</option>
+                            <!-- Grupos serão carregados dinamicamente -->
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                                <i class="fas fa-times me-1"></i>
+                                Limpar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Estatísticas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="fw-bold text-primary" id="total-contacts">0</div>
+                        <small class="text-muted">Contactos</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="fw-bold text-success" id="total-groups">0</div>
+                        <small class="text-muted">Grupos</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="row">
+    <div class="col-12">
+        <ul class="nav nav-tabs" id="contactTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="contacts-tab" data-bs-toggle="tab" 
+                        data-bs-target="#contacts-pane" type="button" role="tab">
+                    <i class="fas fa-users me-2"></i>
+                    Contactos (<span id="contacts-count">0</span>)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="groups-tab" data-bs-toggle="tab" 
+                        data-bs-target="#groups-pane" type="button" role="tab">
+                    <i class="fas fa-layer-group me-2"></i>
+                    Grupos (<span id="groups-count">0</span>)
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="contactTabContent">
+            <!-- Tab Contactos -->
+            <div class="tab-pane fade show active" id="contacts-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Lista de Contactos</h5>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="exportContacts()">
+                                <i class="fas fa-download me-1"></i>
+                                Exportar
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteSelectedContacts()">
+                                <i class="fas fa-trash me-1"></i>
+                                Excluir Selecionados
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="40">
+                                            <input type="checkbox" id="select-all-contacts" onchange="toggleAllContacts()">
+                                        </th>
+                                        <th width="50">⭐</th>
+                                        <th>Nome</th>
+                                        <th>Telefones</th>
+                                        <th>Grupos</th>
+                                        <th width="100">Status</th>
+                                        <th width="120">Criado</th>
+                                        <th width="100">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="contacts-table-body">
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Carregando...</span>
+                                            </div>
+                                            <p class="mt-2 text-muted">Carregando contactos...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab Grupos -->
+            <div class="tab-pane fade" id="groups-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Lista de Grupos</h5>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-success" onclick="manageBulkGroups()">
+                                <i class="fas fa-paper-plane me-1"></i>
+                                SMS para Grupos
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteSelectedGroups()">
+                                <i class="fas fa-trash me-1"></i>
+                                Excluir Selecionados
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="40">
+                                            <input type="checkbox" id="select-all-groups" onchange="toggleAllGroups()">
+                                        </th>
+                                        <th width="30">Cor</th>
+                                        <th>Nome</th>
+                                        <th>Descrição</th>
+                                        <th width="80">Membros</th>
+                                        <th width="100">Status</th>
+                                        <th width="120">Criado</th>
+                                        <th width="120">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="groups-table-body">
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4">
+                                            <div class="spinner-border text-success" role="status">
+                                                <span class="visually-hidden">Carregando...</span>
+                                            </div>
+                                            <p class="mt-2 text-muted">Carregando grupos...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Contacto -->
+<div class="modal fade" id="contactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    <span id="contact-modal-title">Novo Contacto</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="contactForm">
+                    <input type="hidden" id="contact_id">
+                    <div class="mb-3">
+                        <label for="contact_name" class="form-label">Nome *</label>
+                        <input type="text" class="form-control" id="contact_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact_description" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="contact_description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact_phone1" class="form-label">Telefone Principal *</label>
+                        <input type="tel" class="form-control" id="contact_phone1" required placeholder="+258841234567">
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact_phone2" class="form-label">Telefone 2 (Opcional)</label>
+                        <input type="tel" class="form-control" id="contact_phone2" placeholder="+258851234567">
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact_phone3" class="form-label">Telefone 3 (Opcional)</label>
+                        <input type="tel" class="form-control" id="contact_phone3" placeholder="+258861234567">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="contact_favorite">
+                            <label class="form-check-label" for="contact_favorite">
+                                ⭐ Marcar como favorito
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveContact()">
+                    <i class="fas fa-save me-2"></i>
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Grupo -->
+<div class="modal fade" id="groupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-users me-2"></i>
+                    <span id="group-modal-title">Novo Grupo</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="groupForm">
+                    <input type="hidden" id="group_id">
+                    <div class="mb-3">
+                        <label for="group_name" class="form-label">Nome *</label>
+                        <input type="text" class="form-control" id="group_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="group_description" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="group_description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="group_color" class="form-label">Cor</label>
+                        <input type="color" class="form-control form-control-color" id="group_color" value="#007bff">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="saveGroup()">
+                    <i class="fas fa-save me-2"></i>
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let contactsData = [];
+let groupsData = [];
+let currentEditingContact = null;
+let currentEditingGroup = null;
+
+// Carregar dados ao inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    loadContacts();
+    loadGroups();
+});
+
+// ========== CONTACTOS ==========
+
+async function loadContacts() {
+    try {
+        console.log('Carregando contatos...');
+        const response = await fetch('/api/contacts/');
+        console.log('Resposta do servidor:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const contacts = await response.json();
+        console.log('Contatos carregados:', contacts);
+        
+        contactsData = contacts;
+        renderContactsTable();
+        updateStats();
+        
+    } catch (error) {
+        console.error('Erro ao carregar contactos:', error);
+        showError('Erro ao carregar contactos: ' + error.message);
+    }
+}
+
+function renderContactsTable() {
+    const tbody = document.getElementById('contacts-table-body');
+    document.getElementById('contacts-count').textContent = contactsData.length;
+    
+    if (contactsData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-4">
+                    <i class="fas fa-address-book fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Nenhum contacto encontrado</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#contactModal">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Criar Primeiro Contacto
+                    </button>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    contactsData.forEach(contact => {
+        const favorite = contact.is_favorite ? '⭐' : '';
+        const status = contact.is_active ? 
+            '<span class="badge bg-success">Ativo</span>' : 
+            '<span class="badge bg-secondary">Inativo</span>';
+        
+        const phones = contact.phone_numbers.map(phone => 
+            `<span class="badge bg-info me-1">${phone}</span>`
+        ).join('');
+        
+        const createdDate = new Date(contact.created_at).toLocaleDateString('pt-BR');
+        
+        html += `
+            <tr>
+                <td><input type="checkbox" class="contact-checkbox" value="${contact.id}"></td>
+                <td>${favorite}</td>
+                <td>
+                    <div class="fw-bold">${contact.name}</div>
+                    ${contact.description ? `<small class="text-muted">${contact.description}</small>` : ''}
+                </td>
+                <td>${phones}</td>
+                <td>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="manageContactGroups(${contact.id})">
+                        <i class="fas fa-layer-group me-1"></i>
+                        Grupos
+                    </button>
+                </td>
+                <td>${status}</td>
+                <td><small>${createdDate}</small></td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary btn-sm" onclick="editContact(${contact.id})" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="sendSMSToContact(${contact.id})" title="Enviar SMS">
+                            <i class="fas fa-sms"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteContact(${contact.id})" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+}
+
+async function saveContact() {
+    const contactId = document.getElementById('contact_id').value;
+    const name = document.getElementById('contact_name').value.trim();
+    const description = document.getElementById('contact_description').value.trim();
+    const phone1 = document.getElementById('contact_phone1').value.trim();
+    const phone2 = document.getElementById('contact_phone2').value.trim();
+    const phone3 = document.getElementById('contact_phone3').value.trim();
+    const favorite = document.getElementById('contact_favorite').checked;
+    
+    if (!name || !phone1) {
+        alert('Nome e telefone principal são obrigatórios');
+        return;
+    }
+    
+    const contactData = {
+        name,
+        description: description || null,
+        phone1,
+        phone2: phone2 || null,
+        phone3: phone3 || null,
+        is_favorite: favorite
+    };
+    
+    try {
+        const url = contactId ? `/api/contacts/${contactId}` : '/api/contacts/';
+        const method = contactId ? 'PUT' : 'POST';
+        
+        console.log('Enviando requisição:', { url, method, contactData });
+        
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(contactData)
+        });
+        
+        const result = await response.json();
+        console.log('Resposta recebida:', { status: response.status, result });
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('contactModal')).hide();
+            loadContacts();
+            showSuccess(contactId ? 'Contacto atualizado com sucesso' : 'Contacto criado com sucesso');
+        } else {
+            console.error('Erro na resposta:', result);
+            alert('Erro: ' + (result.detail || 'Erro desconhecido'));
+        }
+        
+    } catch (error) {
+        console.error('Erro ao salvar contacto:', error);
+        alert('Erro de conexão ao salvar contacto: ' + error.message);
+    }
+}
+
+// ========== GRUPOS ==========
+
+async function loadGroups() {
+    try {
+        const response = await fetch('/api/contacts/groups');
+        const groups = await response.json();
+        
+        groupsData = groups;
+        renderGroupsTable();
+        updateGroupFilter();
+        updateStats();
+        
+    } catch (error) {
+        console.error('Erro ao carregar grupos:', error);
+        showError('Erro ao carregar grupos');
+    }
+}
+
+function renderGroupsTable() {
+    const tbody = document.getElementById('groups-table-body');
+    document.getElementById('groups-count').textContent = groupsData.length;
+    
+    if (groupsData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-4">
+                    <i class="fas fa-layer-group fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Nenhum grupo encontrado</p>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#groupModal">
+                        <i class="fas fa-users me-2"></i>
+                        Criar Primeiro Grupo
+                    </button>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    groupsData.forEach(group => {
+        const status = group.is_active ? 
+            '<span class="badge bg-success">Ativo</span>' : 
+            '<span class="badge bg-secondary">Inativo</span>';
+        
+        const createdDate = new Date(group.created_at).toLocaleDateString('pt-BR');
+        
+        html += `
+            <tr>
+                <td><input type="checkbox" class="group-checkbox" value="${group.id}"></td>
+                <td><div class="rounded" style="width: 20px; height: 20px; background-color: ${group.color};"></div></td>
+                <td class="fw-bold">${group.name}</td>
+                <td><small class="text-muted">${group.description || ''}</small></td>
+                <td>
+                    <span class="badge bg-primary">${group.member_count}</span>
+                </td>
+                <td>${status}</td>
+                <td><small>${createdDate}</small></td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-info btn-sm" onclick="viewGroup(${group.id})" title="Ver Membros">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="editGroup(${group.id})" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="sendSMSToGroup(${group.id})" title="Enviar SMS">
+                            <i class="fas fa-sms"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteGroup(${group.id})" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+}
+
+async function saveGroup() {
+    const groupId = document.getElementById('group_id').value;
+    const name = document.getElementById('group_name').value.trim();
+    const description = document.getElementById('group_description').value.trim();
+    const color = document.getElementById('group_color').value;
+    
+    if (!name) {
+        alert('Nome do grupo é obrigatório');
+        return;
+    }
+    
+    const groupData = {
+        name,
+        description: description || null,
+        color
+    };
+    
+    try {
+        const url = groupId ? `/api/contacts/groups/${groupId}` : '/api/contacts/groups';
+        const method = groupId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(groupData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('groupModal')).hide();
+            loadGroups();
+            showSuccess(groupId ? 'Grupo atualizado com sucesso' : 'Grupo criado com sucesso');
+        } else {
+            alert('Erro: ' + result.detail);
+        }
+        
+    } catch (error) {
+        console.error('Erro ao salvar grupo:', error);
+        alert('Erro de conexão ao salvar grupo');
+    }
+}
+
+// ========== FUNÇÕES AUXILIARES ==========
+
+function updateStats() {
+    document.getElementById('total-contacts').textContent = contactsData.length;
+    document.getElementById('total-groups').textContent = groupsData.length;
+}
+
+function updateGroupFilter() {
+    const select = document.getElementById('filter_group');
+    select.innerHTML = '<option value="">Todos os grupos</option>';
+    
+    groupsData.forEach(group => {
+        select.innerHTML += `<option value="${group.id}">${group.name}</option>`;
+    });
+}
+
+function refreshData() {
+    loadContacts();
+    loadGroups();
+}
+
+function showSuccess(message) {
+    // Criar toast de sucesso
+    const toastHtml = `
+        <div class="toast align-items-center text-white bg-success border-0 position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999;" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-check-circle me-2"></i>${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+                        data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', toastHtml);
+    const toast = new bootstrap.Toast(document.body.lastElementChild, { delay: 3000 });
+    toast.show();
+    
+    // Remover elemento após o toast desaparecer
+    toast._element.addEventListener('hidden.bs.toast', () => {
+        toast._element.remove();
+    });
+}
+
+function showError(message) {
+    // Criar toast de erro
+    const toastHtml = `
+        <div class="toast align-items-center text-white bg-danger border-0 position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999;" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-exclamation-circle me-2"></i>${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+                        data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', toastHtml);
+    const toast = new bootstrap.Toast(document.body.lastElementChild, { delay: 5000 });
+    toast.show();
+    
+    // Remover elemento após o toast desaparecer
+    toast._element.addEventListener('hidden.bs.toast', () => {
+        toast._element.remove();
+    });
+}
+
+// Placeholder functions - implementar conforme necessário
+function filterContacts() {
+    const search = document.getElementById('search_contacts').value.toLowerCase();
+    const group = document.getElementById('filter_group').value;
+    const favorites = document.getElementById('filter_favorites').checked;
+    
+    let filtered = contactsData.filter(contact => {
+        const matchesSearch = contact.name.toLowerCase().includes(search) || 
+                             contact.phone_numbers.some(phone => phone.includes(search));
+        const matchesGroup = !group || contact.groups.some(g => g.id == group);
+        const matchesFavorites = !favorites || contact.is_favorite;
+        
+        return matchesSearch && matchesGroup && matchesFavorites;
+    });
+    
+    renderContactsTable(filtered);
+}
+
+function clearFilters() {
+    document.getElementById('search_contacts').value = '';
+    document.getElementById('filter_group').value = '';
+    document.getElementById('filter_favorites').checked = false;
+    renderContactsTable(contactsData);
+}
+
+async function editContact(id) {
+    const contact = contactsData.find(c => c.id === id);
+    if (!contact) return;
+    
+    // Preencher o modal com os dados do contacto
+    document.getElementById('contact_id').value = contact.id;
+    document.getElementById('contact_name').value = contact.name;
+    document.getElementById('contact_description').value = contact.description || '';
+    document.getElementById('contact_phone1').value = contact.phone1 || '';
+    document.getElementById('contact_phone2').value = contact.phone2 || '';
+    document.getElementById('contact_phone3').value = contact.phone3 || '';
+    document.getElementById('contact_favorite').checked = contact.is_favorite;
+    
+    // Alterar título do modal
+    document.getElementById('contact-modal-title').textContent = 'Editar Contacto';
+    
+    // Abrir modal
+    new bootstrap.Modal(document.getElementById('contactModal')).show();
+}
+
+async function deleteContact(id) {
+    if (!confirm('Tem certeza que deseja excluir este contacto?')) return;
+    
+    try {
+        const response = await fetch(`/api/contacts/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showSuccess('Contacto excluído com sucesso');
+            loadContacts();
+        } else {
+            const error = await response.json();
+            showError('Erro ao excluir contacto: ' + error.detail);
+        }
+    } catch (error) {
+        console.error('Erro ao excluir contacto:', error);
+        showError('Erro de conexão ao excluir contacto');
+    }
+}
+
+async function sendSMSToContact(id) {
+    const contact = contactsData.find(c => c.id === id);
+    if (!contact) return;
+    
+    const message = prompt(`Enviar SMS para ${contact.name}:\n\nDigite a mensagem:`);
+    if (!message) return;
+    
+    try {
+        console.log('Enviando SMS para contato:', { id, contact: contact.name, message });
+        
+        const response = await fetch('/api/sms/send-contacts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contacts: [id],
+                message: message
+            })
+        });
+        
+        const result = await response.json();
+        console.log('Resposta do envio SMS:', result);
+        
+        if (response.ok) {
+            showSuccess(`SMS enviado para ${contact.name}`);
+        } else {
+            showError('Erro ao enviar SMS: ' + (result.detail || 'Erro desconhecido'));
+        }
+    } catch (error) {
+        console.error('Erro ao enviar SMS:', error);
+        showError('Erro de conexão ao enviar SMS: ' + error.message);
+    }
+}
+
+function manageContactGroups(id) {
+    // TODO: Implementar gestão de grupos do contacto
+    alert('Funcionalidade em desenvolvimento');
+}
+
+async function editGroup(id) {
+    const group = groupsData.find(g => g.id === id);
+    if (!group) return;
+    
+    // Preencher o modal com os dados do grupo
+    document.getElementById('group_name').value = group.name;
+    document.getElementById('group_description').value = group.description || '';
+    document.getElementById('group_color').value = group.color || '#007bff';
+    
+    // Marcar como edição
+    document.getElementById('groupForm').dataset.editId = id;
+    
+    // Abrir modal
+    new bootstrap.Modal(document.getElementById('groupModal')).show();
+}
+
+async function deleteGroup(id) {
+    if (!confirm('Tem certeza que deseja excluir este grupo?')) return;
+    
+    try {
+        const response = await fetch(`/api/contacts/groups/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showSuccess('Grupo excluído com sucesso');
+            loadGroups();
+        } else {
+            const error = await response.json();
+            showError('Erro ao excluir grupo: ' + error.detail);
+        }
+    } catch (error) {
+        console.error('Erro ao excluir grupo:', error);
+        showError('Erro de conexão ao excluir grupo');
+    }
+}
+
+function viewGroup(id) {
+    const group = groupsData.find(g => g.id === id);
+    if (!group) return;
+    
+    // Filtrar contactos do grupo
+    const groupContacts = contactsData.filter(contact => 
+        contact.groups.some(g => g.id === id)
+    );
+    
+    // Mostrar apenas contactos deste grupo
+    renderContactsTable(groupContacts);
+    
+    // Atualizar filtro visual
+    document.getElementById('filter_group').value = id;
+    
+    // Mudar para aba de contactos
+    document.querySelector('button[data-bs-target="#contacts"]').click();
+}
+async function sendSMSToGroup(id) {
+    const group = groupsData.find(g => g.id === id);
+    if (!group) return;
+    
+    const message = prompt(`Enviar SMS para o grupo "${group.name}":\n\nDigite a mensagem:`);
+    if (!message) return;
+    
+    try {
+        const response = await fetch('/api/sms/send-contacts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                group_ids: [id],
+                message: message
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showSuccess(`SMS enviado para o grupo "${group.name}"`);
+        } else {
+            showError('Erro ao enviar SMS: ' + result.detail);
+        }
+    } catch (error) {
+        console.error('Erro ao enviar SMS para grupo:', error);
+        showError('Erro de conexão ao enviar SMS');
+    }
+}
+
+function toggleAllContacts() {
+    const checkboxes = document.querySelectorAll('#contactsTable input[type="checkbox"]');
+    const masterCheckbox = document.getElementById('select_all_contacts');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = masterCheckbox.checked;
+    });
+}
+
+function toggleAllGroups() {
+    const checkboxes = document.querySelectorAll('#groupsTable input[type="checkbox"]');
+    const masterCheckbox = document.getElementById('select_all_groups');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = masterCheckbox.checked;
+    });
+}
+
+async function deleteSelectedContacts() {
+    const selected = Array.from(document.querySelectorAll('#contactsTable input[type="checkbox"]:checked'))
+                         .map(cb => parseInt(cb.value))
+                         .filter(id => !isNaN(id));
+    
+    if (selected.length === 0) {
+        alert('Selecione pelo menos um contacto para excluir');
+        return;
+    }
+    
+    if (!confirm(`Tem certeza que deseja excluir ${selected.length} contacto(s)?`)) return;
+    
+    try {
+        const promises = selected.map(id => 
+            fetch(`/api/contacts/${id}`, { method: 'DELETE' })
+        );
+        
+        await Promise.all(promises);
+        showSuccess(`${selected.length} contacto(s) excluído(s) com sucesso`);
+        loadContacts();
+    } catch (error) {
+        console.error('Erro ao excluir contactos:', error);
+        showError('Erro ao excluir contactos selecionados');
+    }
+}
+
+async function deleteSelectedGroups() {
+    const selected = Array.from(document.querySelectorAll('#groupsTable input[type="checkbox"]:checked'))
+                         .map(cb => parseInt(cb.value))
+                         .filter(id => !isNaN(id));
+    
+    if (selected.length === 0) {
+        alert('Selecione pelo menos um grupo para excluir');
+        return;
+    }
+    
+    if (!confirm(`Tem certeza que deseja excluir ${selected.length} grupo(s)?`)) return;
+    
+    try {
+        const promises = selected.map(id => 
+            fetch(`/api/contacts/groups/${id}`, { method: 'DELETE' })
+        );
+        
+        await Promise.all(promises);
+        showSuccess(`${selected.length} grupo(s) excluído(s) com sucesso`);
+        loadGroups();
+    } catch (error) {
+        console.error('Erro ao excluir grupos:', error);
+        showError('Erro ao excluir grupos selecionados');
+    }
+}
+
+function exportContacts() {
+    if (contactsData.length === 0) {
+        alert('Não há contactos para exportar');
+        return;
+    }
+    
+    // Preparar dados para CSV
+    const csvData = [
+        ['Nome', 'Telefone 1', 'Telefone 2', 'Telefone 3', 'Email', 'Favorito', 'Grupos'],
+        ...contactsData.map(contact => [
+            contact.name,
+            contact.phone1 || '',
+            contact.phone2 || '',
+            contact.phone3 || '',
+            contact.email || '',
+            contact.is_favorite ? 'Sim' : 'Não',
+            contact.groups.map(g => g.name).join('; ')
+        ])
+    ];
+    
+    // Converter para CSV
+    const csvContent = csvData.map(row => 
+        row.map(field => `"${field}"`).join(',')
+    ).join('\n');
+    
+    // Download do arquivo
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `contactos_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showSuccess('Contactos exportados com sucesso');
+}
+
+function manageBulkGroups() {
+    const selected = Array.from(document.querySelectorAll('#contactsTable input[type="checkbox"]:checked'))
+                         .map(cb => parseInt(cb.value))
+                         .filter(id => !isNaN(id));
+    
+    if (selected.length === 0) {
+        alert('Selecione pelo menos um contacto para gerir grupos');
+        return;
+    }
+    
+    // TODO: Implementar modal para gestão de grupos em massa
+    alert(`Gestão de grupos para ${selected.length} contacto(s) - Funcionalidade em desenvolvimento`);
+}
+
+// Função para limpar o formulário de contacto
+function clearContactForm() {
+    document.getElementById('contact_id').value = '';
+    document.getElementById('contact_name').value = '';
+    document.getElementById('contact_description').value = '';
+    document.getElementById('contact_phone1').value = '';
+    document.getElementById('contact_phone2').value = '';
+    document.getElementById('contact_phone3').value = '';
+    document.getElementById('contact_favorite').checked = false;
+    document.getElementById('contact-modal-title').textContent = 'Novo Contacto';
+}
+
+// Configurar evento para limpar o formulário quando o modal for fechado
+document.addEventListener('DOMContentLoaded', function() {
+    const contactModal = document.getElementById('contactModal');
+    if (contactModal) {
+        contactModal.addEventListener('hidden.bs.modal', function() {
+            clearContactForm();
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,901 @@
+{% extends "base.html" %}
+
+{% block title %}USSD - AMA MESSAGE{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h2 mb-4">
+            <i class="fas fa-phone-square-alt me-2"></i>
+            Códigos USSD
+        </h1>
+        <p class="text-muted">Envie códigos USSD para consultar saldo, pacotes de dados e outros serviços da operadora.</p>
+    </div>
+</div>
+
+<!-- Cards de Atalhos USSD -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h5>🚀 Códigos Populares</h5>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-primary">
+            <div class="card-body text-center">
+                <i class="fas fa-coins fa-2x text-primary mb-2"></i>
+                <h6 class="card-title">Consultar Saldo</h6>
+                <button class="btn btn-outline-primary btn-sm" onclick="sendCustomUssdSimple('*124#')">*124#</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-info">
+            <div class="card-body text-center">
+                <i class="fas fa-wifi fa-2x text-info mb-2"></i>
+                <h6 class="card-title">Pacotes Internet</h6>
+                <button class="btn btn-outline-info btn-sm" onclick="sendCustomUssdSimple('*125#')">*125#</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-2x text-success mb-2"></i>
+                <h6 class="card-title">Histórico</h6>
+                <button class="btn btn-outline-success btn-sm" onclick="sendCustomUssdSimple('*126#')">*126#</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-gift fa-2x text-warning mb-2"></i>
+                <h6 class="card-title">Promoções</h6>
+                <button class="btn btn-outline-warning btn-sm" onclick="sendCustomUssdSimple('*127#')">*127#</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Respostas USSD -->
+<div class="row mb-4">
+    <div class="col-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-comments me-2"></i>
+                    Respostas USSD
+                </h5>
+            </div>
+           
+            <div class="card-body">
+                <div id="ussd-menu-area">
+                    <div id="ussd-history-display" class="mb-3" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Histórico será exibido aqui -->
+                    </div>
+                    <div id="ussd-last-response" class="mb-3"></div>
+                    <form id="ussd-session-form" class="mb-3 d-none" onsubmit="event.preventDefault(); sendUssdSessionReply();">
+                        <label for="ussd_session_reply" class="form-label"><strong>Digite comando USSD:</strong></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="ussd_session_reply" placeholder="Ex: 1 ou *155#" autocomplete="off">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-reply me-2"></i>Enviar
+                            </button>
+                        </div>
+                        <div class="form-text text-muted">Digite a opção ou novo código USSD.</div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Formulário USSD Personalizado -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-keyboard me-2"></i>
+                    Enviar Código USSD Personalizado
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="ussdForm">
+                    <div class="mb-3">
+                        <label for="ussd_code" class="form-label">Código USSD</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="ussd_code" 
+                                   placeholder="*123# ou 1234" 
+                                   pattern="[*#0-9]+" 
+                                   title="Use apenas números, * e #">
+                           
+                            <button type="button" class="btn btn-success" onclick="sendCustomUssdSimple()">
+                                <i class="fas fa-bolt me-2"></i>
+                                Enviar 
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            Exemplos: *124#, *125#, 123, etc.<br>
+                            <small class="text-info">💡 Use "Simples" se o método normal não funcionar</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<!-- Diagnóstico USSD -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-stethoscope me-2"></i>
+                    Diagnóstico USSD
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-exclamation-triangle text-warning me-1"></i> Problemas Comuns</h6>
+                        <ul class="list-unstyled small">
+                            <li><i class="fas fa-check-circle text-muted me-1"></i> SIM card está inserido e ativo</li>
+                            <li><i class="fas fa-check-circle text-muted me-1"></i> Modem tem sinal da operadora</li>
+                            <li><i class="fas fa-check-circle text-muted me-1"></i> Código USSD está correto</li>
+                            <li><i class="fas fa-check-circle text-muted me-1"></i> Modem suporta USSD</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-tools text-primary me-1"></i> Ações de Diagnóstico</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="testModemConnection()">
+                                <i class="fas fa-wifi me-1"></i> Testar Conexão
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="checkUssdSupport()">
+                                <i class="fas fa-question-circle me-1"></i> Verificar Suporte USSD
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="sendCustomUssdSimple('*144#')">
+                                <i class="fas fa-flask me-1"></i> Teste Básico (*144#)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Códigos USSD Populares por Operadora -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-book me-2"></i>
+                    Códigos USSD por Operadora (Moçambique)
+                </h5>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" id="edit-ussd-btn" onclick="editUssdCodes()">
+                        <i class="fas fa-edit me-1"></i>
+                        Editar Códigos
+                    </button>
+                    <button class="btn btn-outline-success me-1" data-bs-toggle="modal" data-bs-target="#addUssdModal">
+                        <i class="fas fa-plus me-1"></i>
+                        Adicionar Código
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row" id="ussd-codes-container">
+                    <div class="col-md-4">
+                        <h6 class="text-primary">📱 Vodacom</h6>
+                        <div class="ussd-code-list">
+                            <div class="ussd-code-item d-flex align-items-center mb-2" data-operator="vodacom">
+                                <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="*124#">
+                                    <span class="ussd-code-text">*124#</span>
+                                    <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="*124#" style="width: 80px;">
+                                </button>
+                                <span class="ussd-description">- Consultar Saldo</span>
+                                <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="Consultar Saldo" style="width: 150px;">
+                                <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="ussd-code-item d-flex align-items-center mb-2" data-operator="vodacom">
+                                <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="*125#">
+                                    <span class="ussd-code-text">*125#</span>
+                                    <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="*125#" style="width: 80px;">
+                                </button>
+                                <span class="ussd-description">- Pacotes Internet</span>
+                                <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="Pacotes Internet" style="width: 150px;">
+                                <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="ussd-code-item d-flex align-items-center mb-2" data-operator="vodacom">
+                                <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="*126#">
+                                    <span class="ussd-code-text">*126#</span>
+                                    <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="*126#" style="width: 80px;">
+                                </button>
+                                <span class="ussd-description">- Histórico</span>
+                                <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="Histórico" style="width: 150px;">
+                                <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="ussd-code-item d-flex align-items-center mb-2" data-operator="vodacom">
+                                <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="*127#">
+                                    <span class="ussd-code-text">*127#</span>
+                                    <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="*127#" style="width: 80px;">
+                                </button>
+                                <span class="ussd-description">- Promoções</span>
+                                <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="Promoções" style="width: 150px;">
+                                <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-success">📱 Tmcel</h6>
+                        <div class="ussd-code-list">
+                            <div class="ussd-code-item d-flex align-items-center mb-2" data-operator="tmcel">
+                                <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="*124#">
+                                    <span class="ussd-code-text">*124#</span>
+                                    <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="*124#" style="width: 80px;">
+                                </button>
+                                <span class="ussd-description">- Consultar Saldo</span>
+                                <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="Consultar Saldo" style="width: 150px;">
+                                <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="ussd-code-item d-flex align-items-center mb-2" data-operator="tmcel">
+                                <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="*444#">
+                                    <span class="ussd-code-text">*444#</span>
+                                    <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="*444#" style="width: 80px;">
+                                </button>
+                                <span class="ussd-description">- Menu Principal</span>
+                                <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="Menu Principal" style="width: 150px;">
+                                <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="ussd-code-item d-flex align-items-center mb-2" data-operator="tmcel">
+                                <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="*555#">
+                                    <span class="ussd-code-text">*555#</span>
+                                    <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="*555#" style="width: 80px;">
+                                </button>
+                                <span class="ussd-description">- Pacotes</span>
+                                <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="Pacotes" style="width: 150px;">
+                                <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-warning">📱 Movitel</h6>
+                        <div class="ussd-code-list">
+                            <div class="ussd-code-item d-flex align-items-center mb-2" data-operator="movitel">
+                                <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="*155#">
+                                    <span class="ussd-code-text">*155#</span>
+                                    <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="*155#" style="width: 80px;">
+                                </button>
+                                <span class="ussd-description">- Consultar Saldo</span>
+                                <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="Consultar Saldo" style="width: 150px;">
+                                <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="ussd-code-item d-flex align-items-center mb-2" data-operator="movitel">
+                                <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="*222#">
+                                    <span class="ussd-code-text">*222#</span>
+                                    <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="*222#" style="width: 80px;">
+                                </button>
+                                <span class="ussd-description">- Menu Principal</span>
+                                <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="Menu Principal" style="width: 150px;">
+                                <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="ussd-code-item d-flex align-items-center mb-2" data-operator="movitel">
+                                <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="*333#">
+                                    <span class="ussd-code-text">*333#</span>
+                                    <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="*333#" style="width: 80px;">
+                                </button>
+                                <span class="ussd-description">- Promoções</span>
+                                <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="Promoções" style="width: 150px;">
+                                <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Adicionar Código USSD -->
+<div class="modal fade" id="addUssdModal" tabindex="-1" aria-labelledby="addUssdModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUssdModalLabel">
+                    <i class="fas fa-plus me-2"></i>
+                    Adicionar Código USSD
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUssdForm">
+                    <div class="mb-3">
+                        <label for="newUssdOperator" class="form-label">Operadora</label>
+                        <select class="form-select" id="newUssdOperator" required>
+                            <option value="vodacom">📱 Vodacom</option>
+                            <option value="tmcel">📱 Tmcel</option>
+                            <option value="movitel">📱 Movitel</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newUssdCode" class="form-label">Código USSD</label>
+                        <input type="text" class="form-control" id="newUssdCode" placeholder="*123#" pattern="[*#0-9]+" required>
+                        <div class="form-text">Use apenas números, * e #</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newUssdDescription" class="form-label">Descrição</label>
+                        <input type="text" class="form-control" id="newUssdDescription" placeholder="Ex: Consultar Saldo" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="addNewUssdCode()">
+                    <i class="fas fa-plus me-1"></i>
+                    Adicionar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let ussdHistory = [];
+
+async function sendCustomUssdSimple(code) {
+    if (!code) return;
+    
+    addToUssdHistory(`📤 Enviando: ${code}`, 'sent');
+    updateUssdStatus('Enviando...', 'warning');
+    
+    try {
+        const response = await fetch('/modem/api/ussd/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ussd_code: code })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            addToUssdHistory(`📥 Resposta: ${result.response}`, 'received');
+            updateUssdStatus('Sucesso', 'success');
+        } else {
+            addToUssdHistory(`❌ Erro: ${result.error}`, 'error');
+            updateUssdStatus('Erro', 'danger');
+        }
+    } catch (error) {
+        addToUssdHistory(`❌ Erro de conexão: ${error.message}`, 'error');
+        updateUssdStatus('Erro de Conexão', 'danger');
+    }
+}
+
+async function sendCustomUssd() {
+    const code = document.getElementById('ussd_code').value.trim();
+    if (!code) {
+        alert('Por favor, insira um código USSD');
+        return;
+    }
+    
+    await sendCustomUssdSimple(code);
+    document.getElementById('ussd_code').value = '';
+}
+
+async function sendCustomUssdSimple() {
+    const code = document.getElementById('ussd_code').value.trim();
+    if (!code) {
+        alert('Por favor, insira um código USSD');
+        return;
+    }
+    
+    await sendUssdSimple(code);
+    document.getElementById('ussd_code').value = '';
+}
+
+async function sendUssdSimple(code) {
+    updateUssdStatus('Enviando (Método Simples)...', 'warning');
+    addToUssdHistory(`📱 Enviando (SIMPLES): ${code}`, 'sent');
+    
+    try {
+        const response = await fetch('/ussd/api/send-simple', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ussd_code: code,
+                timeout: 30
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            addToUssdHistory(`📥 Resposta (SIMPLES): ${result.response}`, 'received');
+            if (result.raw_response) {
+                addToUssdHistory(`📄 Raw: ${result.raw_response}`, 'info');
+            }
+            updateUssdStatus('Sucesso (Simples)', 'success');
+        } else {
+            const errorMsg = result.detail || result.error || 'Erro desconhecido';
+            addToUssdHistory(`❌ Erro (SIMPLES): ${errorMsg}`, 'error');
+            updateUssdStatus('Erro (Simples)', 'danger');
+        }
+    } catch (error) {
+        addToUssdHistory(`❌ Erro de conexão (SIMPLES): ${error.message}`, 'error');
+        updateUssdStatus('Erro de Conexão (Simples)', 'danger');
+    }
+}
+
+async function cancelUssd() {
+    updateUssdStatus('Cancelando...', 'warning');
+    
+    try {
+        const response = await fetch('/modem/api/ussd/cancel', { method: 'POST' });
+        const result = await response.json();
+        
+        if (result.success) {
+            addToUssdHistory('🚫 Sessão USSD cancelada', 'info');
+            updateUssdStatus('Cancelado', 'secondary');
+        } else {
+            updateUssdStatus('Erro ao Cancelar', 'danger');
+        }
+    } catch (error) {
+        updateUssdStatus('Erro de Conexão', 'danger');
+    }
+}
+
+function addToUssdHistory(message, type) {
+    const timestamp = new Date().toLocaleTimeString();
+    const entry = {
+        time: timestamp,
+        message: message,
+        type: type
+    };
+    ussdHistory.push(entry);
+    updateUssdHistoryDisplay();
+    // Se for erro de modem não conectado, mostrar orientação extra
+    if (type === 'error' && message && message.includes('Modem GSM não está conectado')) {
+        setTimeout(() => {
+            showAlert('Dica: Se o status do modem mostrar OK, recarregue esta página antes de tentar USSD.', 'warning', 8000);
+        }, 500);
+    }
+}
+
+
+
+function updateUssdStatus(message, type) {
+    // Função mantida para compatibilidade, mas não exibe mais status
+    console.log(`USSD Status: ${message} (${type})`);
+}
+
+// --- USSD Sessão Contínua ---
+let ussdSessionActive = false;
+let ussdSessionStep = 0;
+
+function showUssdSessionInput(show = true) {
+    const form = document.getElementById('ussd-session-form');
+    if (form) {
+        form.classList.toggle('d-none', !show);
+        if (show) {
+            document.getElementById('ussd_session_reply').focus();
+        } else {
+            document.getElementById('ussd_session_reply').value = '';
+        }
+    }
+}
+
+async function sendUssdSessionReply() {
+    const reply = document.getElementById('ussd_session_reply').value.trim();
+    if (!reply) return;
+    addToUssdHistory(`📤 Resposta USSD: ${reply}`, 'sent');
+    updateUssdStatus('Enviando resposta...', 'warning');
+    try {
+        const response = await fetch('/ussd/api/session/reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reply: reply, step: ussdSessionStep })
+        });
+        const result = await response.json();
+        if (result.success) {
+            ussdSessionStep++;
+            addToUssdHistory(`📥 Resposta: ${result.response}`, 'received');
+            updateUssdStatus('Aguardando próxima resposta...', 'info');
+            if (result.session_active) {
+                showUssdSessionInput(true);
+            } else {
+                ussdSessionActive = false;
+                showUssdSessionInput(false);
+                updateUssdStatus('Sessão USSD finalizada', 'success');
+            }
+        } else {
+            addToUssdHistory(`❌ Erro: ${result.error}`, 'error');
+            updateUssdStatus('Erro', 'danger');
+            showUssdSessionInput(false);
+            ussdSessionActive = false;
+        }
+    } catch (error) {
+        addToUssdHistory(`❌ Erro de conexão: ${error.message}`, 'error');
+        updateUssdStatus('Erro de Conexão', 'danger');
+        showUssdSessionInput(false);
+        ussdSessionActive = false;
+    }
+}
+
+// Iniciar sessão USSD contínua (exemplo: chamada por botão ou código especial)
+async function startUssdSession(code) {
+    if (!code) return;
+    addToUssdHistory(`📤 Iniciando sessão USSD: ${code}`, 'sent');
+    updateUssdStatus('Iniciando sessão...', 'warning');
+    try {
+        const response = await fetch('/ussd/api/session/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ussd_code: code })
+        });
+        const result = await response.json();
+        if (result.success) {
+            ussdSessionActive = true;
+            ussdSessionStep = 1;
+            addToUssdHistory(`📥 Resposta: ${result.response}`, 'received');
+            updateUssdStatus('Aguardando resposta...', 'info');
+            if (result.session_active) {
+                showUssdSessionInput(true);
+            } else {
+                showUssdSessionInput(false);
+                ussdSessionActive = false;
+                updateUssdStatus('Sessão USSD finalizada', 'success');
+            }
+        } else {
+            addToUssdHistory(`❌ Erro: ${result.error}`, 'error');
+            updateUssdStatus('Erro', 'danger');
+            showUssdSessionInput(false);
+            ussdSessionActive = false;
+        }
+    } catch (error) {
+        addToUssdHistory(`❌ Erro de conexão: ${error.message}`, 'error');
+        updateUssdStatus('Erro de Conexão', 'danger');
+        showUssdSessionInput(false);
+        ussdSessionActive = false;
+    }
+}
+
+// --- Fim USSD Sessão Contínua ---
+// Funções de diagnóstico
+async function testModemConnection() {
+    try {
+        updateUssdStatus('Testando conexão...', 'warning');
+        addToUssdHistory('🔍 Testando conexão com modem...', 'info');
+        
+        const response = await fetch('/modem/api/status');
+        const result = await response.json();
+        
+        if (result.connected) {
+            updateUssdStatus('Modem Conectado', 'success');
+            addToUssdHistory(`✅ Modem conectado: ${result.port}`, 'received');
+            addToUssdHistory(`📋 Info: ${result.manufacturer} ${result.model}`, 'info');
+        } else {
+            updateUssdStatus('Modem Desconectado', 'danger');
+            addToUssdHistory('❌ Modem não está conectado', 'error');
+        }
+    } catch (error) {
+        updateUssdStatus('Erro no Teste', 'danger');
+        addToUssdHistory(`💥 Erro ao testar conexão: ${error.message}`, 'error');
+    }
+}
+
+async function checkUssdSupport() {
+    try {
+        updateUssdStatus('Verificando USSD...', 'warning');
+        addToUssdHistory('🔍 Verificando suporte USSD...', 'info');
+        
+        const response = await fetch('/api/modem/ussd/status');
+        const result = await response.json();
+        
+        if (result.supported) {
+            updateUssdStatus('USSD Suportado', 'success');
+            addToUssdHistory('✅ USSD é suportado pelo modem', 'received');
+        } else {
+            updateUssdStatus('USSD Não Suportado', 'danger');
+            addToUssdHistory('❌ USSD não é suportado pelo modem', 'error');
+        }
+    } catch (error) {
+        updateUssdStatus('Erro na Verificação', 'danger');
+        addToUssdHistory(`💥 Erro ao verificar USSD: ${error.message}`, 'error');
+    }
+}
+
+// Event listener para enviar USSD com Enter
+document.getElementById('ussd_code').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        // Para sessão contínua, use startUssdSession
+        if (document.getElementById('ussd_code').value.startsWith('##')) {
+            // Exemplo: códigos iniciados com ## usam sessão contínua
+            startUssdSession(document.getElementById('ussd_code').value.trim());
+        } else {
+            sendCustomUssd();
+        }
+    }
+});
+
+// Funções para editar códigos USSD
+function editUssdCodes() {
+    const isEditing = document.querySelector('.ussd-code-input:not(.d-none)');
+    
+    if (isEditing) {
+        // Salvar alterações
+        saveUssdCodes();
+    } else {
+        // Entrar no modo de edição
+        document.querySelectorAll('.ussd-code-text').forEach(span => span.classList.add('d-none'));
+        document.querySelectorAll('.ussd-code-input').forEach(input => input.classList.remove('d-none'));
+        document.querySelectorAll('.ussd-description').forEach(span => span.classList.add('d-none'));
+        document.querySelectorAll('.ussd-description-input').forEach(input => input.classList.remove('d-none'));
+        document.querySelectorAll('.remove-ussd-btn').forEach(btn => btn.classList.remove('d-none'));
+        
+        const editBtn = document.getElementById('edit-ussd-btn');
+        editBtn.innerHTML = '<i class="fas fa-save"></i> Salvar';
+        editBtn.classList.remove('btn-warning');
+        editBtn.classList.add('btn-success');
+    }
+}
+
+function saveUssdCodes() {
+    const codes = {};
+    
+    // Salvar códigos editados
+    document.querySelectorAll('.ussd-code-item').forEach(item => {
+        const operator = item.dataset.operator;
+        const codeInput = item.querySelector('.ussd-code-input');
+        const descInput = item.querySelector('.ussd-description-input');
+        const btn = item.querySelector('.ussd-btn');
+        
+        if (codeInput && descInput && btn) {
+            const newCode = codeInput.value.trim();
+            const newDesc = descInput.value.trim();
+            
+            if (newCode && newDesc) {
+                if (!codes[operator]) codes[operator] = [];
+                codes[operator].push({
+                    code: newCode,
+                    description: newDesc
+                });
+                
+                // Atualizar elementos visuais
+                item.querySelector('.ussd-code-text').textContent = newCode;
+                item.querySelector('.ussd-description').textContent = `- ${newDesc}`;
+                btn.dataset.code = newCode;
+            }
+        }
+    });
+    
+    // Salvar no localStorage
+    localStorage.setItem('customUssdCodes', JSON.stringify(codes));
+    
+    // Sair do modo de edição
+    document.querySelectorAll('.ussd-code-text').forEach(span => span.classList.remove('d-none'));
+    document.querySelectorAll('.ussd-code-input').forEach(input => input.classList.add('d-none'));
+    document.querySelectorAll('.ussd-description').forEach(span => span.classList.remove('d-none'));
+    document.querySelectorAll('.ussd-description-input').forEach(input => input.classList.add('d-none'));
+    document.querySelectorAll('.remove-ussd-btn').forEach(btn => btn.classList.add('d-none'));
+    
+    const editBtn = document.getElementById('edit-ussd-btn');
+    editBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
+    editBtn.classList.remove('btn-success');
+    editBtn.classList.add('btn-warning');
+    
+    addToUssdHistory('✅ Códigos USSD salvos com sucesso!', 'info');
+}
+
+function addNewUssdCode() {
+    const modal = document.getElementById('addUssdModal');
+    const operator = document.getElementById('newUssdOperator').value;
+    const code = document.getElementById('newUssdCode').value.trim();
+    const description = document.getElementById('newUssdDescription').value.trim();
+    
+    if (!code || !description) {
+        addToUssdHistory('❌ Por favor, preencha todos os campos!', 'error');
+        return;
+    }
+    
+    // Encontrar a seção da operadora
+    const operatorSection = document.querySelector(`[data-operator="${operator}"]`).closest('.col-md-4');
+    const codeList = operatorSection.querySelector('.ussd-code-list');
+    
+    // Criar novo item
+    const newItem = document.createElement('div');
+    newItem.className = 'ussd-code-item d-flex align-items-center mb-2';
+    newItem.dataset.operator = operator;
+    newItem.innerHTML = `
+        <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="${code}">
+            <span class="ussd-code-text">${code}</span>
+            <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="${code}" style="width: 80px;">
+        </button>
+        <span class="ussd-description">- ${description}</span>
+        <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="${description}" style="width: 150px;">
+        <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    
+    codeList.appendChild(newItem);
+    
+    // Fechar modal e limpar campos
+    const modalInstance = bootstrap.Modal.getInstance(modal);
+    modalInstance.hide();
+    document.getElementById('newUssdCode').value = '';
+    document.getElementById('newUssdDescription').value = '';
+    
+    // Salvar no localStorage
+    const savedCodes = JSON.parse(localStorage.getItem('customUssdCodes') || '{}');
+    if (!savedCodes[operator]) savedCodes[operator] = [];
+    savedCodes[operator].push({ code: code, description: description });
+    localStorage.setItem('customUssdCodes', JSON.stringify(savedCodes));
+    
+    addToUssdHistory('✅ Código USSD adicionado com sucesso!', 'info');
+}
+
+function removeUssdCode(button) {
+    const item = button.closest('.ussd-code-item');
+    const operator = item.dataset.operator;
+    const code = item.querySelector('.ussd-code-text').textContent;
+    
+    if (confirm(`Tem certeza que deseja remover o código ${code}?`)) {
+        // Remover do localStorage
+        const savedCodes = JSON.parse(localStorage.getItem('customUssdCodes') || '{}');
+        if (savedCodes[operator]) {
+            savedCodes[operator] = savedCodes[operator].filter(c => c.code !== code);
+            if (savedCodes[operator].length === 0) {
+                delete savedCodes[operator];
+            }
+            localStorage.setItem('customUssdCodes', JSON.stringify(savedCodes));
+        }
+        
+        // Remover do DOM
+        item.remove();
+        addToUssdHistory(`🗑️ Código ${code} removido!`, 'info');
+    }
+}
+
+// Carregar códigos salvos no localStorage
+function loadSavedUssdCodes() {
+    const savedCodes = JSON.parse(localStorage.getItem('customUssdCodes') || '{}');
+    
+    Object.keys(savedCodes).forEach(operator => {
+        const operatorCodes = savedCodes[operator];
+        const operatorSection = document.querySelector(`[data-operator="${operator}"]`)?.closest('.col-md-4');
+        
+        if (operatorSection) {
+            const codeList = operatorSection.querySelector('.ussd-code-list');
+            
+            operatorCodes.forEach(codeData => {
+                // Verificar se o código já existe
+                const existingCode = Array.from(codeList.querySelectorAll('.ussd-code-text'))
+                    .find(span => span.textContent === codeData.code);
+                
+                if (!existingCode) {
+                    // Adicionar novo código
+                    const newItem = document.createElement('div');
+                    newItem.className = 'ussd-code-item d-flex align-items-center mb-2';
+                    newItem.dataset.operator = operator;
+                    newItem.innerHTML = `
+                        <button class="btn btn-link btn-sm p-0 ussd-btn me-2" onclick="sendCustomUssdSimple(this.dataset.code)" data-code="${codeData.code}">
+                            <span class="ussd-code-text">${codeData.code}</span>
+                            <input type="text" class="form-control form-control-sm ussd-code-input d-none" value="${codeData.code}" style="width: 80px;">
+                        </button>
+                        <span class="ussd-description">- ${codeData.description}</span>
+                        <input type="text" class="form-control form-control-sm ussd-description-input d-none ms-2" value="${codeData.description}" style="width: 150px;">
+                        <button class="btn btn-outline-danger btn-sm ms-2 d-none remove-ussd-btn" onclick="removeUssdCode(this)" title="Remover">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                    codeList.appendChild(newItem);
+                } else {
+                    // Atualizar descrição se diferente
+                    const existingItem = existingCode.closest('.ussd-code-item');
+                    const descSpan = existingItem.querySelector('.ussd-description');
+                    const descInput = existingItem.querySelector('.ussd-description-input');
+                    
+                    if (descSpan && codeData.description && descSpan.textContent !== `- ${codeData.description}`) {
+                        descSpan.textContent = `- ${codeData.description}`;
+                        if (descInput) descInput.value = codeData.description;
+                    }
+                }
+            });
+        }
+    });
+}
+
+function updateUssdStatus(message, type) {
+    const statusContainer = document.getElementById('ussd-status');
+    if (statusContainer) {
+        const badgeClass = `badge bg-${type}`;
+        statusContainer.innerHTML = `<span class="${badgeClass}">${message}</span>`;
+    }
+}
+
+function updateUssdHistoryDisplay() {
+    const historyContainer = document.getElementById('ussd-history-display');
+    
+    if (ussdHistory.length === 0) {
+        historyContainer.innerHTML = '<p class="text-muted text-center"><i class="fas fa-inbox me-2"></i>Nenhuma resposta USSD ainda</p>';
+        return;
+    }
+    
+    const historyHtml = ussdHistory.slice(-10).map(entry => {
+        let badgeClass = 'bg-secondary';
+        let icon = 'fas fa-info-circle';
+        
+        switch(entry.type) {
+            case 'sent':
+                badgeClass = 'bg-primary';
+                icon = 'fas fa-arrow-up';
+                break;
+            case 'received':
+                badgeClass = 'bg-success';
+                icon = 'fas fa-arrow-down';
+                break;
+            case 'error':
+                badgeClass = 'bg-danger';
+                icon = 'fas fa-exclamation-triangle';
+                break;
+            case 'info':
+                badgeClass = 'bg-info';
+                icon = 'fas fa-info-circle';
+                break;
+        }
+        
+        return `
+            <div class="d-flex align-items-start mb-2 p-2 border-bottom">
+                <span class="badge ${badgeClass} me-2 mt-1">
+                    <i class="${icon} me-1"></i>${entry.time}
+                </span>
+                <div class="flex-grow-1">
+                    <small class="text-break">${entry.message}</small>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    historyContainer.innerHTML = historyHtml;
+    
+    // Auto-scroll para o final
+    historyContainer.scrollTop = historyContainer.scrollHeight;
+}
+
+// Carregar status inicial
+document.addEventListener('DOMContentLoaded', function() {
+    updateUssdStatus('Pronto', 'success');
+    
+    // Carregar códigos USSD salvos
+    loadSavedUssdCodes();
+    
+    // Testar conexão automaticamente ao carregar
+    setTimeout(testModemConnection, 1000);
+});
+</script>
+{% endblock %}

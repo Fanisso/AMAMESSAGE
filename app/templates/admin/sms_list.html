@@ -1,0 +1,841 @@
+{% extends "base.html" %}
+{% block title %}Lista de SMS - AMA MESSAGE{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-envelope me-2"></i>
+                Lista de SMS
+            </h1>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="refreshSMSList()">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    Atualizar
+                </button>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#sendSmsModal">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    Enviar SMS
+                </button>
+                <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#bulkSmsModal">
+                    <i class="fas fa-users me-2"></i>
+                    SMS em Massa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Filtros
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <label for="filter_direction" class="form-label">Direção</label>
+                        <select class="form-select" id="filter_direction" onchange="applySMSFilters()">
+                            <option value="">Todos</option>
+                            <option value="inbound">📥 Recebidos</option>
+                            <option value="outbound">📤 Enviados</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_status" class="form-label">Status</label>
+                        <select class="form-select" id="filter_status" onchange="applySMSFilters()">
+                            <option value="">Todos</option>
+                            <option value="pending">⏳ Pendente</option>
+                            <option value="sent">✅ Enviado</option>
+                            <option value="delivered">📬 Entregue</option>
+                            <option value="failed">❌ Falhou</option>
+                            <option value="received">📥 Recebido</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_phone" class="form-label">Telefone</label>
+                        <input type="text" class="form-control" id="filter_phone" placeholder="Número" onkeyup="debounceFilter(applySMSFilters, 500)">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter_message" class="form-label">Texto da Mensagem</label>
+                        <input type="text" class="form-control" id="filter_message" placeholder="Buscar no conteúdo..." onkeyup="debounceFilter(applySMSFilters, 500)">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_limit" class="form-label">Mostrar</label>
+                        <select class="form-select" id="filter_limit" onchange="applySMSFilters()">
+                            <option value="20">20 registros</option>
+                            <option value="50" selected>50 registros</option>
+                            <option value="100">100 registros</option>
+                            <option value="200">200 registros</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button class="btn btn-outline-secondary" onclick="clearSMSFilters()" title="Limpar Filtros">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Painel de Status da Fila -->
+    <div class="col-md-4">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tasks me-2"></i>
+                    Status da Fila
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="queue-status">
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <small class="d-block mt-1">Carregando status...</small>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-outline-info btn-sm w-100" onclick="loadQueueStatus()">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        Atualizar Status
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de SMS -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    SMS (<span id="sms-count">0</span>)
+                </h5>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" onclick="exportSMSToCSV()">
+                        <i class="fas fa-download me-1"></i>
+                        CSV
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="deleteSelectedSMS()">
+                        <i class="fas fa-trash me-1"></i>
+                        Excluir Selecionados
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="40">
+                                    <input type="checkbox" id="select-all-sms" onchange="toggleAllSMS()">
+                                </th>
+                                <th width="60">ID</th>
+                                <th width="80">
+                                    <i class="fas fa-arrows-alt-v me-1"></i>
+                                    Direção
+                                </th>
+                                <th width="120">
+                                    <i class="fas fa-phone me-1"></i>
+                                    De
+                                </th>
+                                <th width="120">
+                                    <i class="fas fa-phone me-1"></i>
+                                    Para
+                                </th>
+                                <th>
+                                    <i class="fas fa-comment me-1"></i>
+                                    Mensagem
+                                </th>
+                                <th width="100">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Status
+                                </th>
+                                <th width="140">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Data/Hora
+                                </th>
+                                <th width="80">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sms-table-body">
+                            <tr>
+                                <td colspan="9" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Carregando...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">Carregando SMS...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal SMS Individual -->
+<div class="modal fade" id="sendSmsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    Enviar SMS
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="sendSmsForm">
+                    <div class="mb-3">
+                        <label for="sms_phone" class="form-label">Número de Telefone</label>
+                        <input type="tel" class="form-control" id="sms_phone" placeholder="+258841234567" required>
+                        <div class="form-text">Formato internacional recomendado</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sms_message" class="form-label">Mensagem</label>
+                        <textarea class="form-control" id="sms_message" rows="3" placeholder="Digite sua mensagem..." maxlength="160" required></textarea>
+                        <div class="form-text">
+                            <span id="char-count">0</span>/160 caracteres
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="sendSingleSMS()">
+                    <i class="fas fa-paper-plane me-1"></i>
+                    Enviar SMS
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal SMS em Massa -->
+<div class="modal fade" id="bulkSmsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-users me-2"></i>
+                    Enviar SMS em Massa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkSmsForm">
+                    <div class="mb-3">
+                        <label for="bulk_phones" class="form-label">
+                            <i class="fas fa-list me-1"></i>
+                            Números de Telefone
+                        </label>
+                        <textarea class="form-control" id="bulk_phones" rows="6" 
+                                  placeholder="Digite um número por linha:&#10;+258841234567&#10;+258852345678&#10;+258863456789" required></textarea>
+                        <div class="form-text">
+                            <span id="phone-count">0</span> números detectados
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bulk_message" class="form-label">
+                            <i class="fas fa-comment me-1"></i>
+                            Mensagem
+                        </label>
+                        <textarea class="form-control" id="bulk_message" rows="4" 
+                                  placeholder="Digite a mensagem que será enviada para todos os números..." 
+                                  maxlength="160" required></textarea>
+                        <div class="form-text">
+                            <span id="bulk-char-count">0</span>/160 caracteres
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="bulk_priority" class="form-label">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Prioridade
+                            </label>
+                            <select class="form-select" id="bulk_priority">
+                                <option value="0">Normal</option>
+                                <option value="1">Alta</option>
+                                <option value="2">Urgente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bulk_scheduled" class="form-label">
+                                <i class="fas fa-calendar me-1"></i>
+                                Agendar Para (Opcional)
+                            </label>
+                            <input type="datetime-local" class="form-control" id="bulk_scheduled">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="sendBulkSMS()">
+                    <i class="fas fa-users me-1"></i>
+                    Enviar para Todos
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let smsData = [];
+
+// Carregar SMS ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    loadSMSList();
+    loadQueueStatus();
+    
+    // Atualizar status da fila a cada 10 segundos
+    setInterval(loadQueueStatus, 10000);
+    
+    // Contador de caracteres para SMS individual
+    document.getElementById('sms_message').addEventListener('input', function() {
+        updateCharCount('sms_message', 'char-count');
+    });
+    
+    // Contador de caracteres para SMS em massa
+    document.getElementById('bulk_message').addEventListener('input', function() {
+        updateCharCount('bulk_message', 'bulk-char-count');
+    });
+    
+    // Contador de números
+    document.getElementById('bulk_phones').addEventListener('input', function() {
+        updatePhoneCount();
+    });
+});
+
+// Carregar lista de SMS
+async function loadSMSList() {
+    try {
+        const direction = document.getElementById('filter_direction').value;
+        const status = document.getElementById('filter_status').value;
+        const phone = document.getElementById('filter_phone').value;
+        const message = document.getElementById('filter_message').value;
+        const limit = document.getElementById('filter_limit').value;
+        
+        let url = '/api/sms/list?limit=' + limit;
+        if (direction) url += '&direction=' + direction;
+        if (status) url += '&status=' + status;
+        if (phone) url += '&phone=' + encodeURIComponent(phone);
+        if (message) url += '&message=' + encodeURIComponent(message);
+        
+        // Mostrar indicador de carregamento
+        const tbody = document.getElementById('sms-table-body');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center py-4">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    Carregando SMS...
+                </td>
+            </tr>
+        `;
+        
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.success) {
+            smsData = result.data || [];
+            renderSMSTable();
+            
+            // Atualizar contador total
+            const totalCount = result.total_count || smsData.length;
+            updateSMSStats(smsData.length, totalCount);
+        } else {
+            showError('Erro ao carregar SMS: ' + (result.message || 'Erro desconhecido'));
+            smsData = [];
+            renderSMSTable();
+        }
+    } catch (error) {
+        showError('Erro de conexão ao carregar SMS: ' + error.message);
+        console.error('Erro:', error);
+        smsData = [];
+        renderSMSTable();
+    }
+}
+
+// Renderizar tabela de SMS
+function renderSMSTable() {
+    const tbody = document.getElementById('sms-table-body');
+    
+    if (smsData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Nenhum SMS encontrado</p>
+                    <small class="text-muted">Tente ajustar os filtros</small>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    const searchTerm = document.getElementById('filter_message').value;
+    
+    let html = '';
+    smsData.forEach(sms => {
+        const direction = sms.direction === 'inbound' ? 
+            '<span class="badge bg-success">📥 Recebido</span>' : 
+            '<span class="badge bg-primary">📤 Enviado</span>';
+        
+        const status = getStatusBadge(sms.status);
+        const date = new Date(sms.created_at).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit', 
+            year: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        // Destacar texto de busca na mensagem
+        let messageDisplay = sms.message || '';
+        if (searchTerm && messageDisplay) {
+            const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+            messageDisplay = messageDisplay.replace(regex, '<mark class="bg-warning">$1</mark>');
+        }
+        
+        html += `
+            <tr>
+                <td><input type="checkbox" class="sms-checkbox" value="${sms.id}"></td>
+                <td><span class="badge bg-light text-dark">${sms.id}</span></td>
+                <td>${direction}</td>
+                <td class="text-break">${truncateText(sms.phone_from, 15)}</td>
+                <td class="text-break">${truncateText(sms.phone_to, 15)}</td>
+                <td class="text-break" title="${sms.message}">${truncateText(messageDisplay, 50)}</td>
+                <td>${status}</td>
+                <td class="text-nowrap small">${date}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-info btn-sm" onclick="viewSMS(${sms.id})" title="Ver detalhes">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteSMS(${sms.id})" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+}
+
+// Obter badge de status
+function getStatusBadge(status) {
+    const badges = {
+        'pending': '<span class="badge bg-warning">⏳ Pendente</span>',
+        'sent': '<span class="badge bg-success">✅ Enviado</span>',
+        'delivered': '<span class="badge bg-info">📬 Entregue</span>',
+        'failed': '<span class="badge bg-danger">❌ Falhou</span>',
+        'received': '<span class="badge bg-success">📥 Recebido</span>'
+    };
+    return badges[status] || '<span class="badge bg-secondary">❓ Desconhecido</span>';
+}
+
+// Truncar texto (preservando HTML para highlights)
+function truncateText(text, maxLength) {
+    if (!text) return '';
+    
+    // Se tem HTML (highlights), contar apenas texto visível
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = text;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    
+    if (textContent.length <= maxLength) {
+        return text;
+    }
+    
+    // Truncar preservando tags HTML
+    let truncated = text.substring(0, maxLength);
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    if (lastSpaceIndex > maxLength * 0.8) {
+        truncated = truncated.substring(0, lastSpaceIndex);
+    }
+    
+    return truncated + '...';
+}
+
+// Escapar caracteres especiais para regex
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Aplicar filtros
+function applySMSFilters() {
+    loadSMSList();
+}
+
+// Debounce para campos de texto
+let debounceTimer;
+function debounceFilter(func, delay) {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(func, delay);
+}
+
+// Atualizar estatísticas
+function updateSMSStats(displayedCount, totalCount) {
+    document.getElementById('sms-count').textContent = displayedCount;
+    
+    // Adicionar informação sobre filtros se aplicável
+    const filterInfo = document.getElementById('filter-info');
+    if (displayedCount < totalCount) {
+        if (filterInfo) {
+            filterInfo.textContent = `(${totalCount} total)`;
+        } else {
+            const countSpan = document.getElementById('sms-count');
+            countSpan.insertAdjacentHTML('afterend', ` <small id="filter-info" class="text-muted">(${totalCount} total)</small>`);
+        }
+    } else if (filterInfo) {
+        filterInfo.remove();
+    }
+    
+    // Atualizar indicador de filtros ativos
+    updateActiveFiltersIndicator();
+}
+
+// Mostrar indicador de filtros ativos
+function updateActiveFiltersIndicator() {
+    const activeFilters = [];
+    
+    if (document.getElementById('filter_direction').value) activeFilters.push('Direção');
+    if (document.getElementById('filter_status').value) activeFilters.push('Status');
+    if (document.getElementById('filter_phone').value) activeFilters.push('Telefone');
+    if (document.getElementById('filter_message').value) activeFilters.push('Mensagem');
+    
+    const indicator = document.getElementById('active-filters-indicator');
+    if (activeFilters.length > 0) {
+        if (!indicator) {
+            const title = document.querySelector('.card-title');
+            title.insertAdjacentHTML('afterend', ` <span id="active-filters-indicator" class="badge bg-info ms-2">Filtros: ${activeFilters.length}</span>`);
+        } else {
+            indicator.textContent = `Filtros: ${activeFilters.length}`;
+        }
+    } else if (indicator) {
+        indicator.remove();
+    }
+}
+
+// Limpar filtros
+function clearSMSFilters() {
+    document.getElementById('filter_direction').value = '';
+    document.getElementById('filter_status').value = '';
+    document.getElementById('filter_phone').value = '';
+    document.getElementById('filter_message').value = '';
+    document.getElementById('filter_limit').value = '50';
+    loadSMSList();
+}
+
+// Atualizar lista
+function refreshSMSList() {
+    loadSMSList();
+}
+
+// Atualizar contador de caracteres
+function updateCharCount(textareaId, counterId) {
+    const textarea = document.getElementById(textareaId);
+    const counter = document.getElementById(counterId);
+    counter.textContent = textarea.value.length;
+}
+
+// Atualizar contador de telefones
+function updatePhoneCount() {
+    const phones = document.getElementById('bulk_phones').value
+        .split('\n')
+        .map(p => p.trim())
+        .filter(p => p);
+    document.getElementById('phone-count').textContent = phones.length;
+}
+
+// Enviar SMS individual
+async function sendSingleSMS() {
+    const phone = document.getElementById('sms_phone').value.trim();
+    const message = document.getElementById('sms_message').value.trim();
+    
+    if (!phone || !message) {
+        alert('Por favor, preencha todos os campos.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/sms/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone_to: phone, message: message })
+        });
+        
+        const result = await response.json();
+        
+        if (result.id) {
+            alert('SMS enviado com sucesso!');
+            document.getElementById('sendSmsForm').reset();
+            updateCharCount('sms_message', 'char-count');
+            bootstrap.Modal.getInstance(document.getElementById('sendSmsModal')).hide();
+            loadSMSList();
+        } else {
+            alert('Erro ao enviar SMS: ' + (result.detail || 'Erro desconhecido'));
+        }
+    } catch (error) {
+        alert('Erro de conexão ao enviar SMS');
+        console.error('Erro:', error);
+    }
+}
+
+// Enviar SMS em massa
+async function sendBulkSMS() {
+    const phonesText = document.getElementById('bulk_phones').value.trim();
+    const message = document.getElementById('bulk_message').value.trim();
+    const priority = parseInt(document.getElementById('bulk_priority').value);
+    const scheduledFor = document.getElementById('bulk_scheduled').value;
+    
+    if (!phonesText || !message) {
+        alert('Por favor, preencha todos os campos obrigatórios.');
+        return;
+    }
+    
+    const phones = phonesText.split('\n').map(p => p.trim()).filter(p => p);
+    
+    if (phones.length === 0) {
+        alert('Por favor, digite pelo menos um número de telefone.');
+        return;
+    }
+    
+    if (!confirm(`Enviar SMS para ${phones.length} números?`)) {
+        return;
+    }
+    
+    try {
+        const payload = {
+            phones: phones,
+            message: message,
+            priority: priority
+        };
+        
+        if (scheduledFor) {
+            payload.scheduled_for = scheduledFor;
+        }
+        
+        const response = await fetch('/api/sms/send-bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`${result.message}\n\nOS SMS serão processados em segundo plano.`);
+            document.getElementById('bulkSmsForm').reset();
+            updateCharCount('bulk_message', 'bulk-char-count');
+            updatePhoneCount();
+            bootstrap.Modal.getInstance(document.getElementById('bulkSmsModal')).hide();
+            loadSMSList();
+        } else {
+            alert('Erro ao enviar SMS em massa: ' + result.message);
+        }
+    } catch (error) {
+        alert('Erro de conexão ao enviar SMS em massa');
+        console.error('Erro:', error);
+    }
+}
+
+// Selecionar/deselecionar todos os SMS
+function toggleAllSMS() {
+    const selectAll = document.getElementById('select-all-sms');
+    const checkboxes = document.querySelectorAll('.sms-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+}
+
+// Exportar SMS para CSV
+function exportSMSToCSV() {
+    if (smsData.length === 0) {
+        alert('Nenhum SMS para exportar');
+        return;
+    }
+    
+    const headers = ['ID', 'Direção', 'De', 'Para', 'Mensagem', 'Status', 'Data'];
+    const csvContent = [
+        headers.join(','),
+        ...smsData.map(sms => [
+            sms.id,
+            sms.direction === 'inbound' ? 'Recebido' : 'Enviado',
+            `"${sms.phone_from}"`,
+            `"${sms.phone_to}"`,
+            `"${(sms.message || '').replace(/"/g, '""')}"`,
+            sms.status,
+            new Date(sms.created_at).toLocaleString('pt-BR')
+        ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    
+    // Nome do arquivo com timestamp e filtros
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const activeFilters = [];
+    if (document.getElementById('filter_direction').value) activeFilters.push('dir');
+    if (document.getElementById('filter_status').value) activeFilters.push('status');
+    if (document.getElementById('filter_phone').value) activeFilters.push('tel');
+    if (document.getElementById('filter_message').value) activeFilters.push('msg');
+    
+    const filterSuffix = activeFilters.length > 0 ? '_filtrado' : '';
+    link.download = `sms_${timestamp}${filterSuffix}.csv`;
+    link.click();
+}
+
+// Ver detalhes do SMS
+function viewSMS(id) {
+    const sms = smsData.find(s => s.id === id);
+    if (sms) {
+        alert(`SMS #${sms.id}\n\nDe: ${sms.phone_from}\nPara: ${sms.phone_to}\nMensagem: ${sms.message}\nStatus: ${sms.status}\nData: ${new Date(sms.created_at).toLocaleString('pt-BR')}`);
+    }
+}
+
+// Excluir SMS individual
+async function deleteSMS(id) {
+    if (!confirm('Tem certeza que deseja excluir este SMS?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/sms/${id}`, { method: 'DELETE' });
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('SMS excluído com sucesso');
+            loadSMSList();
+        } else {
+            alert('Erro ao excluir SMS: ' + result.message);
+        }
+    } catch (error) {
+        alert('Erro de conexão ao excluir SMS');
+    }
+}
+
+// Excluir SMS selecionados
+async function deleteSelectedSMS() {
+    const selected = document.querySelectorAll('.sms-checkbox:checked');
+    
+    if (selected.length === 0) {
+        alert('Nenhum SMS selecionado');
+        return;
+    }
+    
+    if (!confirm(`Excluir ${selected.length} SMS selecionados?`)) {
+        return;
+    }
+    
+    const ids = Array.from(selected).map(cb => parseInt(cb.value));
+    
+    try {
+        const promises = ids.map(id => fetch(`/api/sms/${id}`, { method: 'DELETE' }));
+        await Promise.all(promises);
+        
+        alert(`${ids.length} SMS excluídos com sucesso`);
+        loadSMSList();
+    } catch (error) {
+        alert('Erro ao excluir SMS selecionados');
+    }
+}
+
+// Carregar status da fila de SMS
+async function loadQueueStatus() {
+    try {
+        const response = await fetch('/api/sms/queue/status');
+        const result = await response.json();
+        
+        const statusContainer = document.getElementById('queue-status');
+        
+        if (result) {
+            const processorStatus = result.processor_running ? 
+                '<span class="badge bg-success">🟢 Ativo</span>' : 
+                '<span class="badge bg-danger">🔴 Parado</span>';
+            
+            statusContainer.innerHTML = `
+                <div class="row g-2 text-center">
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <div class="fw-bold text-warning">${result.total_pending || 0}</div>
+                            <small class="text-muted">⏳ Pendentes</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <div class="fw-bold text-success">${result.total_processed || 0}</div>
+                            <small class="text-muted">✅ Processados</small>
+                        </div>
+                    </div>
+                    <div class="col-12 mt-2">
+                        <div class="border rounded p-2">
+                            <div>Processador: ${processorStatus}</div>
+                            ${result.next_scheduled ? 
+                                `<small class="text-muted">📅 Próximo: ${new Date(result.next_scheduled).toLocaleString('pt-BR')}</small>` : 
+                                '<small class="text-muted">📅 Nenhum agendado</small>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            statusContainer.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <small class="d-block">Erro ao carregar status</small>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar status da fila:', error);
+        document.getElementById('queue-status').innerHTML = `
+            <div class="text-center text-danger">
+                <i class="fas fa-times-circle"></i>
+                <small class="d-block">Erro de conexão</small>
+            </div>
+        `;
+    }
+}
+
+// Mostrar erro
+function showError(message) {
+    const tbody = document.getElementById('sms-table-body');
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="9" class="text-center py-4 text-danger">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <p>${message}</p>
+                <button class="btn btn-outline-primary btn-sm" onclick="loadSMSList()">
+                    <i class="fas fa-sync-alt me-1"></i>
+                    Tentar Novamente
+                </button>
+            </td>
+        </tr>
+    `;
+}
+</script>
+{% endblock %}

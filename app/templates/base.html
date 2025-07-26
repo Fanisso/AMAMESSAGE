@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AMA MESSAGE - Sistema de SMS{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-sms me-2"></i>
+                AMA MESSAGE
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-tachometer-alt me-1"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/sms">
+                            <i class="fas fa-envelope me-1"></i>
+                            SMS
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/contacts">
+                            <i class="fas fa-address-book me-1"></i>
+                            Contactos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/modem/ussd">
+                            <i class="fas fa-phone-square-alt me-1"></i>
+                            USSD
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/modem">
+                            <i class="fas fa-mobile-alt me-1"></i>
+                            Modem GSM
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Status do Modem -->
+                <div class="navbar-text me-3" id="modem-status-indicator">
+                    <span class="badge bg-secondary" id="modem-connection-badge">
+                        <i class="fas fa-mobile-alt me-1"></i>
+                        <span id="modem-status-text">Verificando...</span>
+                    </span>
+                    <span class="badge bg-info ms-1" id="signal-strength-badge">
+                        <i class="fas fa-signal me-1"></i>
+                        <span id="signal-strength-text">--</span>
+                    </span>
+                </div>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>
+                            Admin
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/docs">
+                                <i class="fas fa-book me-1"></i>
+                                API Docs
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/logout">
+                                <i class="fas fa-sign-out-alt me-1"></i>
+                                Sair
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-light text-center text-muted py-3 mt-5">
+        <div class="container">
+            <p class="mb-0">
+                &copy; 2025 AMA MESSAGE - Sistema de Envio e Recepção de SMS
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="/static/js/app.js"></script>
+    
+    <!-- Status do Modem Global -->
+    <script>
+        async function updateGlobalModemStatus() {
+            try {
+                const response = await fetch('/modem/api/status');
+                const result = await response.json();
+                
+                const connectionBadge = document.getElementById('modem-connection-badge');
+                const statusText = document.getElementById('modem-status-text');
+                const signalBadge = document.getElementById('signal-strength-badge');
+                const signalText = document.getElementById('signal-strength-text');
+                
+                if (result.connected) {
+                    connectionBadge.className = 'badge bg-success';
+                    statusText.textContent = 'Conectado';
+                    
+                    // Atualizar força do sinal
+                    const signal = result.signal_strength || 0;
+                    let signalClass = 'bg-danger';
+                    let signalIcon = 'fas fa-signal-slash';
+                    
+                    if (signal > 75) {
+                        signalClass = 'bg-success';
+                        signalIcon = 'fas fa-signal';
+                    } else if (signal > 50) {
+                        signalClass = 'bg-warning';
+                        signalIcon = 'fas fa-signal';
+                    } else if (signal > 25) {
+                        signalClass = 'bg-orange';
+                        signalIcon = 'fas fa-signal';
+                    }
+                    
+                    signalBadge.className = `badge ${signalClass} ms-1`;
+                    signalBadge.innerHTML = `<i class="${signalIcon} me-1"></i><span id="signal-strength-text">${signal}%</span>`;
+                    
+                } else {
+                    connectionBadge.className = 'badge bg-danger';
+                    statusText.textContent = 'Desconectado';
+                    signalBadge.className = 'badge bg-secondary ms-1';
+                    signalBadge.innerHTML = '<i class="fas fa-signal-slash me-1"></i><span id="signal-strength-text">--</span>';
+                }
+                
+            } catch (error) {
+                console.error('Erro ao atualizar status do modem:', error);
+                
+                const connectionBadge = document.getElementById('modem-connection-badge');
+                const statusText = document.getElementById('modem-status-text');
+                const signalBadge = document.getElementById('signal-strength-badge');
+                
+                connectionBadge.className = 'badge bg-warning';
+                statusText.textContent = 'Erro';
+                signalBadge.className = 'badge bg-secondary ms-1';
+                signalBadge.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i><span id="signal-strength-text">Erro</span>';
+            }
+        }
+        
+        // Atualizar status ao carregar e periodicamente
+        document.addEventListener('DOMContentLoaded', function() {
+            updateGlobalModemStatus();
+            
+            // Atualizar a cada 30 segundos
+            setInterval(updateGlobalModemStatus, 30000);
+        });
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
