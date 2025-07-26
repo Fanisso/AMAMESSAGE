@@ -142,6 +142,13 @@ class DeployManager:
         except FileNotFoundError:
             print("\n🐳 Docker: Não disponível")
             
+    def prepare_files(self, deploy_type):
+        """Preparar ficheiros para deploy"""
+        logger.info(f"Preparando ficheiros para {deploy_type}...")
+        
+        script = self.scripts_dir / "prepare_deploy.py"
+        subprocess.run([sys.executable, str(script), deploy_type])
+        
     def show_help(self):
         """Mostrar ajuda detalhada"""
         help_text = """
@@ -153,6 +160,7 @@ COMANDOS DISPONÍVEIS:
   install          Instalação local (Windows/Linux/Mac)
   check           Verificar sistema e dependências
   test            Testar configuração e funcionalidades
+  prepare TYPE     Preparar ficheiros para deploy (development/production/docker)
 
 🏭 DEPLOY EM PRODUÇÃO:
   production      Deploy completo em servidor Linux
@@ -183,6 +191,11 @@ EXEMPLOS DE USO:
   # Verificar se tudo está funcionando
   python deploy.py check
   python deploy.py test
+
+  # Preparar ficheiros
+  python deploy.py prepare development
+  python deploy.py prepare production
+  python deploy.py prepare docker
 
   # Deploy em produção
   sudo python deploy.py production
@@ -230,6 +243,8 @@ def main():
     
     parser.add_argument('command', nargs='?', 
                        help='Comando a executar (use "help" para ver todos)')
+    parser.add_argument('deploy_type', nargs='?',
+                       help='Tipo de deploy para comando prepare (development/production/docker)')
     parser.add_argument('--path', 
                        help='Caminho personalizado para deploy em produção')
     parser.add_argument('--skip-backup', action='store_true',
@@ -270,6 +285,11 @@ def main():
             manager.update_system(args.skip_backup, args.skip_restart)
         elif args.command == 'status':
             manager.show_status()
+        elif args.command == 'prepare':
+            if not args.deploy_type:
+                print("❌ Tipo de deploy necessário. Use: development, production, ou docker")
+                sys.exit(1)
+            manager.prepare_files(args.deploy_type)
         elif args.command == 'help':
             manager.show_help()
         else:
