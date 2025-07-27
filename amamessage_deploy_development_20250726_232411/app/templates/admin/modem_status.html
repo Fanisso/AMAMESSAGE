@@ -1,0 +1,704 @@
+{% extends "base.html" %}
+
+{% block title %}Status do Modem GSM - AMA MESSAGE{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h2 mb-4">
+            <i class="fas fa-mobile-alt me-2"></i>
+            Status do Modem GSM
+        </h1>
+    </div>
+</div>
+
+<!-- Status Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card {% if modem_status.connected %}bg-success{% else %}bg-danger{% endif %} text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h4 class="mb-0">{{ modem_status.status }}</h4>
+                        <p class="mb-0">Conexão</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas {% if modem_status.connected %}fa-check-circle{% else %}fa-times-circle{% endif %} fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h4 class="mb-0" id="signal-strength">{{ modem_status.signal_strength }}%</h4>
+                        <p class="mb-0">Força do Sinal</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-signal fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h4 class="mb-0" id="operator">{{ modem_status.operator }}</h4>
+                        <p class="mb-0">Operadora</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-broadcast-tower fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h4 class="mb-0" id="last-update">-</h4>
+                        <p class="mb-0">Última Atualização</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Controles -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cog me-2"></i>
+                    Controles do Modem
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-primary w-100" onclick="refreshStatus()">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            Atualizar Status
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-warning w-100" onclick="restartModem()">
+                            <i class="fas fa-redo me-2"></i>
+                            Reiniciar Modem
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-secondary w-100" onclick="detectModems()">
+                            <i class="fas fa-search me-2"></i>
+                            Detectar Modems
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-danger w-100" onclick="showDiagnosticModal()">
+                            <i class="fas fa-stethoscope me-2"></i>
+                            Diagnóstico Avançado
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-primary w-100" onclick="reconnectModem()">
+                            <i class="fas fa-plug me-2"></i>
+                            Reconectar Auto
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-info w-100" onclick="testConnection()">
+                            <i class="fas fa-heartbeat me-2"></i>
+                            Testar Conexão
+                        </button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#testSmsModal">
+                            <i class="fas fa-sms me-2"></i>
+                            Enviar SMS Teste
+                        </button>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <button class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#detectionResultsModal">
+                            <i class="fas fa-list me-2"></i>
+                            Ver Portas Disponíveis
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configurações -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-wrench me-2"></i>
+                    Configurações
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Porta Serial:</strong></td>
+                        <td>
+                            {% if modem_info and modem_info.port %}
+                                <span class="badge bg-success">{{ modem_info.port }}</span>
+                                <small class="text-muted">(detectada automaticamente)</small>
+                            {% elif settings and settings.GSM_PORT != 'AUTO' %}
+                                <span class="badge bg-info">{{ settings.GSM_PORT }}</span>
+                                <small class="text-muted">(configurada)</small>
+                            {% else %}
+                                <span class="badge bg-warning">AUTO</span>
+                                <small class="text-muted">(detecção automática)</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Baudrate:</strong></td>
+                        <td>{{ settings.GSM_BAUDRATE if settings else '115200' }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Timeout:</strong></td>
+                        <td>{{ settings.GSM_TIMEOUT if settings else '10' }}s</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Intervalo de Check:</strong></td>
+                        <td>{{ settings.SMS_CHECK_INTERVAL if settings else '30' }}s</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Portas Disponíveis
+                </h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-outline-primary btn-sm mb-3" onclick="listPorts()">
+                    <i class="fas fa-search me-1"></i>
+                    Detectar Portas
+                </button>
+                <div id="ports-list">
+                    <div class="text-muted">Clique em "Detectar Portas" para listar</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log de Atividades -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list-alt me-2"></i>
+                    Log de Atividades
+                </h5>
+                <button class="btn btn-outline-secondary btn-sm" onclick="clearLog()">
+                    <i class="fas fa-trash me-1"></i>
+                    Limpar
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="activity-log" style="height: 200px; overflow-y: auto; background-color: #f8f9fa; padding: 10px; border-radius: 4px;">
+                    <div class="text-muted">Log de atividades aparecerá aqui...</div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bell me-2"></i>
+                    Log de Alertas do Sistema
+                </h5>
+                <button class="btn btn-outline-danger btn-sm" onclick="clearAlertLog()">
+                    <i class="fas fa-trash me-1"></i>
+                    Limpar Alertas
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="alert-log" style="height: 150px; overflow-y: auto; background-color: #fff3cd; padding: 10px; border-radius: 4px;">
+                    <div class="text-muted">Log de alertas aparecerá aqui...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detecção de Modems -->
+<!-- Modal Diagnóstico Avançado -->
+<div class="modal fade" id="diagnosticModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-stethoscope me-2"></i>
+                    Diagnóstico Robusto de Modem GSM
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="diagnostic-results">
+                    <div class="text-center">
+                        <div class="spinner-border text-danger" role="status">
+                            <span class="visually-hidden">Executando diagnóstico...</span>
+                        </div>
+                        <p class="mt-2">Executando diagnóstico robusto...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="/modem/api/diagnostic/export" class="btn btn-success" target="_blank">
+                    <i class="fas fa-file-csv me-2"></i>
+                    Exportar CSV
+                </a>
+                <button type="button" class="btn btn-danger" onclick="showDiagnosticModal()">
+                    <i class="fas fa-redo me-2"></i>
+                    Diagnosticar Novamente
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="detectionResultsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-search me-2"></i>
+                    Detecção Automática de Modems GSM
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detection-results">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Detectando...</span>
+                        </div>
+                        <p class="mt-2">Detectando modems GSM...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="detectModems()">
+                    <i class="fas fa-redo me-2"></i>
+                    Detectar Novamente
+                </button>
+                <button type="button" class="btn btn-success" onclick="reconnectModem()">
+                    <i class="fas fa-plug me-2"></i>
+                    Reconectar Automaticamente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Teste SMS -->
+<div class="modal fade" id="testSmsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-sms me-2"></i>
+                    Enviar SMS de Teste
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="testSmsForm">
+                    <div class="mb-3">
+                        <label for="test_phone" class="form-label">Número de Telefone</label>
+                        <input type="text" class="form-control" id="test_phone" placeholder="+258841234567" required>
+                        <div class="form-text">Use o formato internacional (+258 para Moçambique)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="test_message" class="form-label">Mensagem</label>
+                        <textarea class="form-control" id="test_message" rows="3" required>Teste do sistema AMA MESSAGE</textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="sendTestSms()">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    Enviar Teste
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+// Log de Alertas do Sistema
+async function loadAlertLog() {
+    try {
+        const response = await fetch('/modem/api/alerts');
+        const result = await response.json();
+        const container = document.getElementById('alert-log');
+        if (result.success && result.alerts.length > 0) {
+            container.innerHTML = result.alerts.map(a => `
+                <div class="mb-1">
+                    <span class="badge ${a.success ? 'bg-success' : 'bg-danger'}">${a.success ? 'OK' : 'ERRO'}</span>
+                    <strong>${a.event}</strong> <small class="text-muted">${a.timestamp}</small><br>
+                    <span class="small">${a.details || ''}</span>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="text-muted">Nenhum alerta registrado.</div>';
+        }
+    } catch (e) {
+        document.getElementById('alert-log').innerHTML = '<div class="text-danger">Erro ao carregar log de alertas.</div>';
+    }
+}
+
+async function clearAlertLog() {
+    if (!confirm('Deseja limpar o log de alertas?')) return;
+    try {
+        await fetch('/modem/api/alerts/clear', { method: 'POST' });
+        loadAlertLog();
+    } catch (e) {
+        alert('Erro ao limpar log de alertas.');
+    }
+}
+
+// Atualizar log de alertas a cada 20s
+setInterval(loadAlertLog, 20000);
+document.addEventListener('DOMContentLoaded', function() {
+    loadAlertLog();
+});
+// Diagnóstico Avançado
+async function showDiagnosticModal() {
+    const modal = new bootstrap.Modal(document.getElementById('diagnosticModal'));
+    document.getElementById('diagnostic-results').innerHTML = `<div class='text-center'><div class='spinner-border text-danger' role='status'></div><p class='mt-2'>Executando diagnóstico robusto...</p></div>`;
+    modal.show();
+    try {
+        const response = await fetch('/modem/api/diagnostic');
+        const result = await response.json();
+        let html = '';
+        if (result.success) {
+            html += `<h6>Porta Detectada: ${result.found ? `<span class='badge bg-success'>${result.found.port}</span>` : '<span class='badge bg-danger'>Nenhuma</span>'}</h6>`;
+            html += '<div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th>Porta</th><th>Status</th><th>AT</th><th>ATI</th><th>Erro</th></tr></thead><tbody>';
+            for (const r of result.results) {
+                html += `<tr${result.found && r.port === result.found.port ? ' class="table-success"' : ''}><td>${r.port}</td><td>${r.status}</td><td><pre>${r.response_at || ''}</pre></td><td><pre>${r.response_ati || ''}</pre></td><td>${r.error || ''}</td></tr>`;
+            }
+            html += '</tbody></table></div>';
+        } else {
+            html = `<div class='alert alert-danger'>Erro no diagnóstico: ${result.error || 'desconhecido'}</div>`;
+        }
+        document.getElementById('diagnostic-results').innerHTML = html;
+    } catch (e) {
+        document.getElementById('diagnostic-results').innerHTML = `<div class='alert alert-danger'>Erro ao executar diagnóstico.</div>`;
+    }
+}
+<script>
+let activityLog = [];
+
+function addToLog(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `[${timestamp}] ${message}`;
+    
+    activityLog.push({ time: timestamp, message: message, type: type });
+    
+    const logContainer = document.getElementById('activity-log');
+    const logElement = document.createElement('div');
+    logElement.className = `log-entry text-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'muted'}`;
+    logElement.textContent = logEntry;
+    
+    logContainer.appendChild(logElement);
+    logContainer.scrollTop = logContainer.scrollHeight;
+    
+    // Manter apenas últimas 50 entradas
+    const entries = logContainer.querySelectorAll('.log-entry');
+    if (entries.length > 50) {
+        entries[0].remove();
+    }
+}
+
+function clearLog() {
+    document.getElementById('activity-log').innerHTML = '<div class="text-muted">Log limpo...</div>';
+    activityLog = [];
+}
+
+async function refreshStatus() {
+    addToLog('Atualizando status do modem...', 'info');
+    
+    try {
+        const response = await fetch('/modem/api/status');
+        const result = await response.json();
+        
+        if (result.success) {
+            const data = result.data;
+            
+            // Atualizar cards
+            document.getElementById('signal-strength').textContent = data.signal_strength + '%';
+            document.getElementById('operator').textContent = data.operator;
+            document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+            
+            // Atualizar cor do card de conexão
+            const connectionCard = document.querySelector('.row .col-md-3:first-child .card');
+            if (data.connected) {
+                connectionCard.className = 'card bg-success text-white';
+                connectionCard.querySelector('h4').textContent = 'Online';
+                connectionCard.querySelector('i').className = 'fas fa-check-circle fa-2x opacity-50';
+            } else {
+                connectionCard.className = 'card bg-danger text-white';
+                connectionCard.querySelector('h4').textContent = 'Offline';
+                connectionCard.querySelector('i').className = 'fas fa-times-circle fa-2x opacity-50';
+            }
+            
+            addToLog(`Status atualizado - ${data.operator}, Sinal: ${data.signal_strength}%`, 'success');
+        } else {
+            addToLog('Erro ao atualizar status', 'error');
+        }
+    } catch (error) {
+        addToLog('Erro de conexão ao atualizar status', 'error');
+        console.error('Erro:', error);
+    }
+}
+
+async function restartModem() {
+    if (!confirm('Deseja reiniciar o modem GSM? Isso pode interromper temporariamente o serviço.')) {
+        return;
+    }
+    
+    addToLog('Reiniciando modem GSM...', 'info');
+    
+    try {
+        const response = await fetch('/modem/api/restart', { method: 'POST' });
+        const result = await response.json();
+        
+        if (result.success) {
+            addToLog('Modem reiniciado com sucesso', 'success');
+            setTimeout(refreshStatus, 2000); // Atualizar status após 2 segundos
+        } else {
+            addToLog('Falha ao reiniciar modem: ' + result.message, 'error');
+        }
+    } catch (error) {
+        addToLog('Erro ao reiniciar modem', 'error');
+        console.error('Erro:', error);
+    }
+}
+
+async function testConnection() {
+    addToLog('Testando conexão com modem...', 'info');
+    
+    try {
+        const response = await fetch('/modem/api/test-connection', { method: 'POST' });
+        const result = await response.json();
+        
+        if (result.success) {
+            addToLog('Teste de conexão: ' + result.message, 'success');
+        } else {
+            addToLog('Teste de conexão falhou: ' + result.message, 'error');
+        }
+    } catch (error) {
+        addToLog('Erro no teste de conexão', 'error');
+        console.error('Erro:', error);
+    }
+}
+
+async function listPorts() {
+    addToLog('Detectando portas seriais...', 'info');
+    
+    try {
+        const response = await fetch('/modem/api/ports');
+        const result = await response.json();
+        
+        if (result.success) {
+            const container = document.getElementById('ports-list');
+            
+            if (result.ports.length === 0) {
+                container.innerHTML = '<div class="text-muted">Nenhuma porta serial encontrada</div>';
+            } else {
+                container.innerHTML = result.ports.map(port => `
+                    <div class="border rounded p-2 mb-2">
+                        <strong>${port.device}</strong><br>
+                        <small class="text-muted">${port.description || 'Sem descrição'}</small>
+                    </div>
+                `).join('');
+            }
+            
+            addToLog(`${result.ports.length} portas detectadas`, 'success');
+        } else {
+            addToLog('Erro ao detectar portas', 'error');
+        }
+    } catch (error) {
+        addToLog('Erro ao listar portas', 'error');
+        console.error('Erro:', error);
+    }
+}
+
+async function sendTestSms() {
+    const phone = document.getElementById('test_phone').value.trim();
+    const message = document.getElementById('test_message').value.trim();
+    
+    if (!phone || !message) {
+        alert('Por favor, preencha todos os campos.');
+        return;
+    }
+    
+    addToLog(`Enviando SMS de teste para ${phone}...`, 'info');
+    
+    try {
+        const response = await fetch('/modem/api/send-test-sms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `phone_number=${encodeURIComponent(phone)}&message=${encodeURIComponent(message)}`
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            addToLog('SMS de teste enviado com sucesso', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('testSmsModal')).hide();
+            document.getElementById('testSmsForm').reset();
+        } else {
+            addToLog('Falha no envio: ' + result.message, 'error');
+        }
+    } catch (error) {
+        addToLog('Erro ao enviar SMS de teste', 'error');
+        console.error('Erro:', error);
+    }
+}
+
+// Auto-refresh status a cada 30 segundos
+setInterval(refreshStatus, 30000);
+
+async function detectModems() {
+    addToLog('🔍 Detectando modems GSM automaticamente...', 'info');
+    
+    try {
+        const response = await fetch('/modem/api/detect');
+        const result = await response.json();
+        
+        if (result.success) {
+            const data = result.data;
+            
+            // Mostrar resultado da detecção
+            if (data.detected_modem) {
+                addToLog(`📱 Modem GSM detectado automaticamente na porta: ${data.detected_modem}`, 'success');
+            } else {
+                addToLog('❌ Nenhum modem GSM detectado automaticamente', 'warning');
+            }
+            
+            // Atualizar modal com portas disponíveis
+            updateDetectionModal(data);
+            
+            // Mostrar modal
+            const modal = new bootstrap.Modal(document.getElementById('detectionResultsModal'));
+            modal.show();
+            
+        } else {
+            addToLog('Erro ao detectar modems', 'error');
+        }
+    } catch (error) {
+        addToLog('Erro na detecção automática', 'error');
+        console.error('Erro:', error);
+    }
+}
+
+async function reconnectModem() {
+    addToLog('🔄 Reconectando modem automaticamente...', 'info');
+    
+    try {
+        const response = await fetch('/modem/api/reconnect', { method: 'POST' });
+        const result = await response.json();
+        
+        if (result.success) {
+            addToLog('✅ ' + result.message, 'success');
+            // Recarregar página após alguns segundos
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            addToLog('❌ ' + result.message, 'error');
+        }
+    } catch (error) {
+        addToLog('Erro na reconexão automática', 'error');
+        console.error('Erro:', error);
+    }
+}
+
+function updateDetectionModal(data) {
+    const container = document.getElementById('detection-results');
+    
+    let html = '<h6>🎯 Resultado da Detecção Automática</h6>';
+    
+    if (data.detected_modem) {
+        html += `<div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Modem GSM detectado:</strong> ${data.detected_modem}
+        </div>`;
+    } else {
+        html += `<div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Nenhum modem GSM detectado automaticamente</strong>
+        </div>`;
+    }
+    
+    html += '<h6 class="mt-3">📋 Todas as Portas Disponíveis</h6>';
+    
+    if (data.available_ports.length === 0) {
+        html += '<div class="text-muted">Nenhuma porta serial encontrada</div>';
+    } else {
+        html += '<div class="list-group">';
+        data.available_ports.forEach(port => {
+            const isDetected = port.port === data.detected_modem;
+            html += `
+                <div class="list-group-item ${isDetected ? 'list-group-item-success' : ''}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${port.port}</strong>
+                            ${isDetected ? '<span class="badge bg-success ms-2">DETECTADO</span>' : ''}
+                            <br>
+                            <small class="text-muted">${port.description || 'Sem descrição'}</small>
+                        </div>
+                        ${isDetected ? '<i class="fas fa-mobile-alt text-success"></i>' : ''}
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+// Carregar status inicial
+document.addEventListener('DOMContentLoaded', function() {
+    refreshStatus();
+    addToLog('Página de status do modem carregada', 'info');
+});
+</script>
+{% endblock %}

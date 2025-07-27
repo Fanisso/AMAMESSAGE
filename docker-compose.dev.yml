@@ -1,0 +1,83 @@
+# Docker Compose para desenvolvimento local
+version: '3.8'
+
+services:
+  # Aplicação Principal (desenvolvimento)
+  amamessage:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://dev:dev123@db:5432/amamessage_dev
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=True
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - amamessage-network
+
+  # Base de Dados PostgreSQL (desenvolvimento)
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: amamessage_dev
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev123
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - amamessage-network
+
+  # Redis para desenvolvimento
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - amamessage-network
+
+  # pgAdmin para gerenciamento da BD
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@amamessage.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - amamessage-network
+
+  # Redis Insight para monitoramento Redis
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+    volumes:
+      - redisinsight_data:/db
+    networks:
+      - amamessage-network
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  pgadmin_data:
+  redisinsight_data:
+
+networks:
+  amamessage-network:
+    driver: bridge

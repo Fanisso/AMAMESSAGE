@@ -1,0 +1,103 @@
+# Docker Compose para desenvolvimento e produção
+version: '3.8'
+
+services:
+  # Aplicação Principal
+  amamessage:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://amamessage:amamessage123@db:5432/amamessage
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - amamessage-network
+
+  # Base de Dados PostgreSQL
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: amamessage
+      POSTGRES_USER: amamessage
+      POSTGRES_PASSWORD: amamessage123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - amamessage-network
+
+  # Redis para filas e cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - amamessage-network
+    command: redis-server --appendonly yes
+
+  # Celery Worker para processamento de filas
+  celery:
+    build: .
+    command: celery -A app.core.celery worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://amamessage:amamessage123@db:5432/amamessage
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - amamessage-network
+
+  # Celery Beat para tarefas agendadas
+  celery-beat:
+    build: .
+    command: celery -A app.core.celery beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://amamessage:amamessage123@db:5432/amamessage
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - amamessage-network
+
+  # Nginx Reverse Proxy (Produção)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - amamessage
+    restart: unless-stopped
+    networks:
+      - amamessage-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  amamessage-network:
+    driver: bridge

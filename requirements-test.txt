@@ -1,0 +1,88 @@
+# Test requirements for AMAMESSAGE
+# Install with: pip install -r requirements-test.txt
+
+# Core testing frameworks
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-html>=3.1.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.10.0
+pytest-xdist>=3.0.0
+
+# Web testing
+selenium>=4.15.0
+webdriver-manager>=4.0.0
+requests>=2.31.0
+
+# Mobile testing (Appium)
+Appium-Python-Client>=3.1.0
+pytest-appium>=2.0.0
+
+# API testing  
+httpx>=0.25.0
+fastapi[testing]>=0.104.0
+
+# Database testing
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+
+# Hardware/Serial testing
+pyserial>=3.5
+psutil>=5.9.0
+
+# Performance testing
+locust>=2.17.0
+memory-profiler>=0.61.0
+
+# Mocking and fixtures
+responses>=0.23.0
+factory-boy>=3.3.0
+faker>=19.0.0
+
+# Cloud testing
+boto3>=1.29.0  # For AWS testing
+azure-identity>=1.15.0  # For Azure testing
+
+# Report generation
+allure-pytest>=2.13.0
+pytest-benchmark>=4.0.0
+
+# Code quality (for test validation)
+flake8>=6.0.0
+black>=23.0.0
+mypy>=1.7.0
+
+# Windows specific (for modem testing)
+pywin32>=306; sys_platform == "win32"
+wmi>=1.5.1; sys_platform == "win32"
+
+# Development utilities
+ipdb>=0.13.0
+pdbpp>=0.10.3
+
+# Environment management
+python-dotenv>=1.0.0
+
+# Parallel testing
+pytest-parallel>=0.1.1
+
+# Test data generation
+hypothesis>=6.88.0
+
+# Screenshots for UI tests
+pillow>=10.0.0
+
+# JSON validation
+jsonschema>=4.19.0
+
+# Time/date handling for tests
+freezegun>=1.2.0
+
+# Network testing
+requests-mock>=1.11.0
+
+# Configuration validation
+pydantic>=2.4.0
+
+# Logging for tests
+structlog>=23.2.0

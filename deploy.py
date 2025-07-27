@@ -148,6 +148,42 @@ class DeployManager:
         
         script = self.scripts_dir / "prepare_deploy.py"
         subprocess.run([sys.executable, str(script), deploy_type])
+    
+    def create_binary(self):
+        """Criar executável binário sem código fonte"""
+        logger.info("Criando executável binário...")
+        
+        script = self.scripts_dir / "create_binary.py"
+        subprocess.run([sys.executable, str(script)])
+    
+    def create_obfuscated(self):
+        """Criar versão com código obfuscado"""
+        logger.info("Criando versão obfuscada...")
+        
+        script = self.scripts_dir / "create_obfuscated.py" 
+        subprocess.run([sys.executable, str(script)])
+    
+    def create_saas(self):
+        """Criar deployment SaaS"""
+        logger.info("Criando deployment SaaS...")
+        
+        script = self.scripts_dir / "create_saas.py"
+        subprocess.run([sys.executable, str(script)])
+        
+        # Perguntar se quer criar pacote cliente
+        try:
+            response = input("\n🤔 Criar pacote para cliente também? (s/n): ").lower()
+            if response in ['s', 'sim', 'y', 'yes']:
+                server_url = input("🌐 URL do servidor (https://seuservico.com): ").strip()
+                if not server_url:
+                    server_url = "https://seuservico.com"
+                
+                client_script = self.scripts_dir / "create_client_package.py"
+                subprocess.run([sys.executable, str(client_script), "--server", server_url])
+        except KeyboardInterrupt:
+            print("\n⏹️ Criação de pacote cliente cancelada.")
+        except:
+            pass  # Ignorar erros de input em ambientes não interativos
         
     def show_help(self):
         """Mostrar ajuda detalhada"""
@@ -173,7 +209,12 @@ COMANDOS DISPONÍVEIS:
   docker-stop     Parar todos os serviços
   docker-logs     Ver logs em tempo real
 
-🔄 MANUTENÇÃO:
+�️ PROTEÇÃO DE CÓDIGO:
+  binary          Criar executável (sem código fonte)
+  obfuscate       Obfuscar código (código ilegível)
+  saas            Deploy SaaS (código no servidor)
+
+�🔄 MANUTENÇÃO:
   update          Atualizar sistema completo
   update --skip-backup    Atualizar sem backup
   update --skip-restart   Atualizar sem reiniciar serviço
@@ -290,6 +331,12 @@ def main():
                 print("❌ Tipo de deploy necessário. Use: development, production, ou docker")
                 sys.exit(1)
             manager.prepare_files(args.deploy_type)
+        elif args.command == 'binary':
+            manager.create_binary()
+        elif args.command == 'obfuscate':
+            manager.create_obfuscated()
+        elif args.command == 'saas':
+            manager.create_saas()
         elif args.command == 'help':
             manager.show_help()
         else:

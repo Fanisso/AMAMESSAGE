@@ -1,53 +1,119 @@
-# Sistema de SMS - AMA MESSAGE
+# AMAMESSAGE - Plataforma de Automação SMS/USSD
 
-Sistema completo de envio e recepção de SMS com:
-- Base de dados SQLite/PostgreSQL
-- API REST para integração externa
-- Interface web de administração
-- Processamento automático de comandos SMS
-- **Comunicação direta com modem GSM/USB** (sem dependência de terceiros)
-- Sistema de filas para envio em massa
+Sistema completo de gestão e automação de SMS/USSD via GSM modem com arquitetura monorepo.
 
-## Tecnologias Utilizadas
+## 🏗️ Arquitetura Monorepo
 
-- **Backend**: Python 3.12 + FastAPI
-- **Base de Dados**: SQLite (desenvolvimento) / PostgreSQL (produção)
-- **Frontend**: HTML/CSS/JavaScript + Bootstrap
-- **Comunicação GSM**: PySerial + Comandos AT
-- **Filas**: Celery + Redis (opcional)
-- **Modem GSM**: Qualquer modem USB GSM compatível
+### Componentes da Plataforma
 
-## Configuração
+- **Backend API**: FastAPI com suporte SMS/USSD
+- **Cliente Web Enterprise**: Interface para empresas
+- **Cliente Web Individual**: Interface simplificada para usuários individuais  
+- **App Mobile Android**: Aplicativo nativo Android
+- **App Mobile iOS**: Aplicativo nativo iOS
+- **Componentes Compartilhados**: Modelos, utilitários e schemas reutilizáveis
 
-### Pré-requisitos
+### Linhas de Deployment
 
-1. **Modem GSM USB**: Qualquer modem GSM compatível com comandos AT
-2. **Cartão SIM**: Com plano de dados/SMS ativo
-3. **Python 3.12+**
-4. **Drivers do modem** instalados no sistema
+1. **Local**: Desenvolvimento e testes locais
+2. **Web Client**: Deploy dos clientes web
+3. **Cloud Test**: Ambiente de testes na nuvem
+4. **Cloud Production**: Ambiente de produção
+5. **Mobile**: Build e distribuição dos apps mobile
+6. **Windows Modem**: Servidor dedicado para modems GSM
 
-### Instalação
+## 🚀 Características
 
-1. Instalar dependências:
-```bash
-pip install -r requirements.txt
+### Core Features
+- **SMS & USSD**: Envio, recebimento e automação completa
+- **Multi-Modem**: Suporte a múltiplos modems GSM
+- **Multi-Cliente**: Suporte para empresas e usuários individuais
+- **Cross-Platform**: Web, Android, iOS e Windows
+
+### Funcionalidades Avançadas
+- **Gestão de Contactos**: Importação/exportação, grupos, blacklist
+- **Regras de Reencaminhamento**: Condições flexíveis com regex
+- **Agendamento**: Envio programado de mensagens
+- **Templates**: Sistema de templates personalizáveis
+- **Dashboard**: Monitorização e estatísticas em tempo real
+- **API REST**: Endpoints completos para integração
+
+## 🛠️ Tecnologias
+
+### Backend
+- **Python 3.8+**: FastAPI, SQLAlchemy, Pydantic
+- **Base de Dados**: SQLite (dev), PostgreSQL (prod)
+- **Comunicação**: PySerial para modems GSM
+- **Cache**: Redis para sessions e cache
+
+### Frontend Web
+- **TypeScript**: Tipagem forte para maior robustez
+- **React 18**: Framework moderno com hooks
+- **Material-UI**: Componentes de interface consistentes
+- **Vite**: Build tool rápido e moderno
+
+### Mobile
+- **Android**: Kotlin nativo com Jetpack Compose
+- **iOS**: Swift nativo com SwiftUI
+- **Arquitetura**: MVVM com Repository pattern
+
+### DevOps
+- **Docker**: Containerização completa
+- **GitHub Actions**: CI/CD automatizado
+- **Nginx**: Proxy reverso e load balancer
+
+## 📁 Estrutura do Projeto
+
 ```
-
-2. Conectar o modem GSM USB e identificar a porta:
-   - **Windows**: Verificar no Gerenciador de Dispositivos (ex: COM3, COM4)
-   - **Linux**: Verificar em `/dev/ttyUSB0`, `/dev/ttyACM0`, etc.
-
-3. Configurar variáveis de ambiente no arquivo `.env`:
-```bash
-# Configurar a porta do modem
-GSM_PORT=COM3
-GSM_BAUDRATE=115200
-GSM_PIN=1234  # PIN do SIM (se necessário)
-```
-
-4. Executar migrações da base de dados:
-```bash
-alembic upgrade head
+AMAMESSAGE/
+├── backend/                    # API Backend (FastAPI)
+│   ├── app/
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── clients/                    # Clientes Frontend
+│   ├── web-enterprise/         # Cliente Web Empresarial
+│   │   ├── src/
+│   │   ├── package.json
+│   │   └── vite.config.ts
+│   ├── web-individual/         # Cliente Web Individual
+│   │   ├── src/
+│   │   ├── package.json
+│   │   └── vite.config.ts
+│   ├── mobile-android/         # App Android
+│   │   ├── app/
+│   │   └── build.gradle
+│   └── mobile-ios/             # App iOS
+│       ├── AMAMESSAGE/
+│       └── AMAMESSAGE.xcodeproj
+│
+├── shared/                     # Componentes Compartilhados
+│   ├── api/                    # Cliente API Python
+│   ├── models/                 # Modelos de dados
+│   ├── schemas/                # Schemas Pydantic
+│   ├── types/                  # Tipos TypeScript
+│   ├── utils/                  # Utilitários
+│   └── constants/              # Constantes do sistema
+│
+├── tests/                      # Testes por Deployment Line
+│   ├── local/                  # Testes locais
+│   ├── web_client/             # Testes web
+│   ├── mobile/                 # Testes mobile
+│   ├── cloud_test/             # Testes cloud
+│   ├── cloud_production/       # Testes produção
+│   ├── windows_modem/          # Testes modem
+│   ├── pytest.ini
+│   └── run_tests.py
+│
+├── docs/                       # Documentação
+│   ├── api/                    # Docs da API
+│   ├── deployment/             # Guias de deployment
+│   └── user_guides/            # Manuais do usuário
+│
+└── infrastructure/             # Configurações de Deploy
+    ├── docker/
+    ├── nginx/
+    └── scripts/
 ```
 
 5. Iniciar a aplicação:
