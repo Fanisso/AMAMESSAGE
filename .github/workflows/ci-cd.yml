@@ -1,0 +1,89 @@
+name: AMAMESSAGE CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r ../requirements-test.txt
+    
+    - name: Run backend tests
+      run: |
+        python run_tests.py local --unit --coverage
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+
+  test-web-admin:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: clients/web-admin/package-lock.json
+    
+    - name: Install web-admin dependencies
+      run: |
+        cd clients/web-admin
+        npm ci
+    
+    - name: Run web-admin tests
+      run: |
+        cd clients/web-admin
+        npm run test
+    
+    - name: Build web-admin
+      run: |
+        cd clients/web-admin
+        npm run build
+
+  deploy-development:
+    needs: [test-backend, test-web-admin]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to development
+      run: |
+        echo "Deploying to development environment..."
+        # Adicionar scripts de deploy para desenvolvimento
+
+  deploy-production:
+    needs: [test-backend, test-web-admin]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        # Adicionar scripts de deploy para produção

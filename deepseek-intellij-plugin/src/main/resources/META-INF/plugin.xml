@@ -1,0 +1,21 @@
+﻿<idea-plugin>
+    <id>com.deepseek.plugin</id>
+    <name>DeepSeek Assistant</name>
+    <version>1.0</version>
+    <vendor>SeuNome</vendor>
+
+    <description>Assistente AI DeepSeek para análise de código</description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+
+    <actions>
+        <action id="DeepSeek.AnalyzeCode" 
+                class="com.deepseek.DeepSeekAction" 
+                text="Analisar com DeepSeek" 
+                description="Analisar código usando DeepSeek AI">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift D"/>
+        </action>
+    </actions>
+</idea-plugin>

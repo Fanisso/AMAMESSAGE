@@ -1,0 +1,42 @@
+' VBA Macro to calculate the center and radius of an arc passing through three points
+Sub CalculateArc()
+    ' Input: Three points (x1, y1), (x2, y2), (x3, y3)
+    Dim x1 As Double, y1 As Double
+    Dim x2 As Double, y2 As Double
+    Dim x3 As Double, y3 As Double
+
+    ' Output: Center (xc, yc) and radius r
+    Dim xc As Double, yc As Double, r As Double
+
+    ' Read points from the worksheet
+    x1 = Range("A1").Value
+    y1 = Range("B1").Value
+    x2 = Range("A2").Value
+    y2 = Range("B2").Value
+    x3 = Range("A3").Value
+    y3 = Range("B3").Value
+
+    ' Calculate the determinants
+    Dim A As Double, B As Double, C As Double, D As Double, E As Double, F As Double
+
+    A = x1 * (y2 - y3) - y1 * (x2 - x3) + x2 * y3 - x3 * y2
+    B = (x1 ^ 2 + y1 ^ 2) * (y3 - y2) + (x2 ^ 2 + y2 ^ 2) * (y1 - y3) + (x3 ^ 2 + y3 ^ 2) * (y2 - y1)
+    C = (x1 ^ 2 + y1 ^ 2) * (x2 - x3) + (x2 ^ 2 + y2 ^ 2) * (x3 - x1) + (x3 ^ 2 + y3 ^ 2) * (x1 - x2)
+    D = (x1 ^ 2 + y1 ^ 2) * (x3 * y2 - x2 * y3) + (x2 ^ 2 + y2 ^ 2) * (x1 * y3 - x3 * y1) + (x3 ^ 2 + y3 ^ 2) * (x2 * y1 - x1 * y2)
+
+    ' Calculate the center and radius
+    xc = -B / (2 * A)
+    yc = -C / (2 * A)
+    r = Sqr((B ^ 2 + C ^ 2 - 4 * A * D) / (4 * A ^ 2))
+
+    ' Output the results to the worksheet
+    Range("D1").Value = "Center X"
+    Range("E1").Value = "Center Y"
+    Range("F1").Value = "Radius"
+
+    Range("D2").Value = xc
+    Range("E2").Value = yc
+    Range("F2").Value = r
+
+    MsgBox "Arc calculation complete!", vbInformation
+End Sub
